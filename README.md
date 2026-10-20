@@ -228,7 +228,7 @@ Your URL is stored **only in that browser** (via `localStorage`) — it is never
 8. In **Team Progress**, filter by a team to see its runs, best score, average, and trend.
 9. Check **Competition Ranking** for the overall standings across rounds (see below).
 
-### How Competition Ranking works (rule 6.1)
+### How Competition Ranking works 
 
 Use a consistent **Round / Run** label (e.g. "Run 1", "Run 2") when logging, since ranking groups runs by that label. For each round:
 
