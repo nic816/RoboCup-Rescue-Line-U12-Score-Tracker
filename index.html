@@ -13,6 +13,7 @@
             --primary-hover: #0284c7;
             --success: #10b981;
             --danger: #ef4444;
+            --warning: #f59e0b;
             --text-main: #f8fafc;
             --text-muted: #94a3b8;
             --border-color: #334155;
@@ -41,6 +42,8 @@
             justify-content: space-between;
             align-items: center;
             border-bottom: 2px solid var(--primary);
+            flex-wrap: wrap;
+            gap: 10px;
         }
 
         .header-panel h2 {
@@ -83,7 +86,7 @@
         }
 
         .btn-reset {
-            background: #f59e0b;
+            background: var(--warning);
             color: black;
         }
 
@@ -123,7 +126,8 @@
             color: var(--text-muted);
         }
 
-        .form-group input {
+        .form-group input,
+        .form-group select {
             width: 100%;
             padding: 10px;
             border: 1px solid var(--border-color);
@@ -133,9 +137,50 @@
             color: var(--text-main);
         }
 
-        .form-group input:focus {
+        .form-group input:focus,
+        .form-group select:focus {
             outline: none;
             border-color: var(--primary);
+        }
+
+        /* Team manager */
+        .team-manager {
+            display: flex;
+            gap: 10px;
+            margin-top: 12px;
+            align-items: flex-end;
+            flex-wrap: wrap;
+        }
+
+        .team-manager .form-group {
+            flex: 1;
+            min-width: 160px;
+        }
+
+        .btn-mini {
+            padding: 10px 14px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            background: var(--primary);
+            color: #000;
+            transition: 0.2s;
+            white-space: nowrap;
+        }
+
+        .btn-mini:hover {
+            background: var(--primary-hover);
+            color: white;
+        }
+
+        .btn-mini.danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-mini.danger:hover {
+            background: #b91c1c;
         }
 
         /* Hazards */
@@ -294,6 +339,61 @@
             background-color: rgba(255, 255, 255, 0.02);
         }
 
+        /* Progress summary */
+        .filter-bar {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+        }
+
+        .filter-bar .form-group {
+            flex: 1;
+            min-width: 180px;
+        }
+
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .stat-box {
+            background: rgba(0, 0, 0, 0.25);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .stat-box .label {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-box .value {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--primary);
+            margin-top: 4px;
+        }
+
+        .trend-up {
+            color: var(--success);
+        }
+
+        .trend-down {
+            color: var(--danger);
+        }
+
+        .trend-flat {
+            color: var(--text-muted);
+        }
+
         /* Score Board */
         .score-board {
             background: #020617;
@@ -316,6 +416,12 @@
             margin-top: 5px;
             color: var(--text-muted);
         }
+
+        @media (max-width: 600px) {
+            .stat-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
     </style>
 </head>
 
@@ -336,15 +442,35 @@
         </div>
 
         <div class="card" style="border-radius: 0 0 8px 8px; margin-top: 0;">
-            <div class="info-grid">
+            <div class="info-grid" style="grid-template-columns: 1fr 1fr 1fr;">
                 <div class="form-group">
-                    <label>Competition Name</label>
+                    <label>Session Date</label>
+                    <input type="date" id="sessionDate">
+                </div>
+                <div class="form-group">
+                    <label>Competition / Session Name</label>
                     <input type="text" id="compName" placeholder="e.g., Track A Practice">
                 </div>
                 <div class="form-group">
-                    <label>Team Name & Round</label>
-                    <input type="text" id="teamName" placeholder="e.g., Team Alpha - Run 1">
+                    <label>Round / Run</label>
+                    <input type="text" id="roundName" placeholder="e.g., Run 1">
                 </div>
+            </div>
+
+            <!-- Team management: add / select / remove teams. No team names are hardcoded. -->
+            <div class="team-manager">
+                <div class="form-group">
+                    <label>Active Team</label>
+                    <select id="teamSelect">
+                        <option value="">— No teams yet —</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Add a New Team</label>
+                    <input type="text" id="newTeamInput" placeholder="New team name" onkeydown="if(event.key==='Enter')addTeam()">
+                </div>
+                <button class="btn-mini" onclick="addTeam()">+ Add Team</button>
+                <button class="btn-mini danger" onclick="removeTeam()">Remove Selected</button>
             </div>
         </div>
 
@@ -388,30 +514,79 @@
         </div>
 
         <div class="card">
-            <h3>3. U12 Tasks & Session Log</h3>
+            <h3>3. Exit Bonus & Session Log</h3>
+
+            <div class="hazard-grid" style="grid-template-columns: 1fr 1fr; margin-bottom: 15px;">
+                <div class="hazard-box">
+                    <strong style="color: var(--text-main);">Lack of Progress (LoP)</strong>
+                    <span>(−5 pts each, off the exit bonus)</span>
+                    <div class="btn-group">
+                        <button onclick="updateLop(-1)">-</button>
+                        <span id="lop">0</span>
+                        <button onclick="updateLop(1)">+</button>
+                    </div>
+                </div>
+                <div class="hazard-box">
+                    <strong style="color: var(--text-main);">Exit Bonus</strong>
+                    <span>max(0, 60 − 5 × LoP) — goal only</span>
+                    <div style="font-size: 26px; font-weight: bold; color: var(--success); margin-top: 8px;" id="exitBonus">0</div>
+                </div>
+            </div>
+
             <label
                 style="font-size: 16px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 10px; color: var(--text-main); background: rgba(0,0,0,0.2); padding: 15px; border-radius: 5px; border: 1px solid var(--border-color);">
-                <input type="checkbox" id="redLineCheck" style="width: 22px; height: 22px; cursor: pointer;">
-                Red Line Stop Detected successfully
+                <input type="checkbox" id="goalReachedCheck" style="width: 22px; height: 22px; cursor: pointer;">
+                Reached goal tile & stopped for 5+ seconds (awards Exit Bonus)
             </label>
 
             <div class="action-grid">
-                <button class="btn-save" onclick="saveRun()">💾 Save Run to Local Storage</button>
+                <button class="btn-save" onclick="saveRun()">💾 Save Run</button>
                 <button class="btn-clear" onclick="clearLogs()">🗑️ Clear All Logs</button>
             </div>
+        </div>
 
-            <h4
-                style="margin-top: 25px; border-bottom: 1px solid var(--border-color); padding-bottom: 5px; color: var(--primary);">
-                Saved Sessions (Persists on Refresh)</h4>
+        <div class="card">
+            <h3>4. Team Progress</h3>
+
+            <div class="filter-bar">
+                <div class="form-group">
+                    <label>Filter by Team</label>
+                    <select id="filterTeam" onchange="renderTable()">
+                        <option value="__all__">All Teams</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="stat-grid" id="statGrid">
+                <div class="stat-box">
+                    <div class="label">Runs Logged</div>
+                    <div class="value" id="statRuns">0</div>
+                </div>
+                <div class="stat-box">
+                    <div class="label">Best Score</div>
+                    <div class="value" id="statBest">0</div>
+                </div>
+                <div class="stat-box">
+                    <div class="label">Average</div>
+                    <div class="value" id="statAvg">0</div>
+                </div>
+                <div class="stat-box">
+                    <div class="label">Last vs Prev</div>
+                    <div class="value" id="statTrend">—</div>
+                </div>
+            </div>
+
             <div style="overflow-x: auto;">
                 <table id="logTable">
                     <thead>
                         <tr>
                             <th>Date & Time</th>
-                            <th>Team/Round</th>
+                            <th>Team</th>
+                            <th>Round</th>
                             <th>Hazards</th>
                             <th>Tiles</th>
-                            <th>Red Line</th>
+                            <th>LoP</th>
+                            <th>Exit Bonus</th>
                             <th>Total</th>
                         </tr>
                     </thead>
@@ -421,20 +596,57 @@
             </div>
         </div>
 
+        <div class="card">
+            <h3>5. Competition Ranking</h3>
+            <p style="color: var(--text-muted); font-size: 13px; margin-top: 0;">
+                Teams ranked by the <strong>mean of normalized field scores</strong> (rule 6.1). Each run is
+                normalized against the best score in its round, then averaged per team. Only the
+                <strong>best run per team within each round</strong> is counted.
+            </p>
+            <div style="overflow-x: auto;">
+                <table id="rankTable">
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Team</th>
+                            <th>Rounds</th>
+                            <th>Best Run</th>
+                            <th>Mean Normalized</th>
+                        </tr>
+                    </thead>
+                    <tbody id="rankBody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
         <div class="score-board">
             TOTAL SCORE: <span id="totalScore">0</span>
             <div class="score-breakdown">
-                Hazards: <span id="hazardTotal">0</span> | Tiles: <span id="tileTotal">0</span>
+                Hazards: <span id="hazardTotal">0</span> | Tiles: <span id="tileTotal">0</span> | Exit Bonus: <span id="exitBonusTotal">0</span>
             </div>
         </div>
 
     </div>
 
     <script>
-        // --- SCORE LOGIC ---
-        let counts = { gaps: 0, intersections: 0, obstacles: 0 };
-        let segmentCount = 0;
+        // ====================================================================
+        //  CONFIG — paste your Google Apps Script Web App URL here.
+        //  Leave as-is to run in local-only mode (saves in this browser).
+        // ====================================================================
+        const scriptURL = 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE';
+        const cloudEnabled = scriptURL && scriptURL !== 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE';
 
+        // --- STATE ---
+        let counts = { gaps: 0, intersections: 0, obstacles: 0 };
+        let lop = 0; // Lack of Progress count for the current run
+        let segmentCount = 0;
+        let runLogs = [];
+        let teams = [];
+
+        // ====================================================================
+        //  SCORE LOGIC
+        // ====================================================================
         function updateCount(type, change) {
             if (counts[type] + change >= 0) {
                 counts[type] += change;
@@ -472,6 +684,22 @@
             calculateScore();
         }
 
+        function updateLop(change) {
+            if (lop + change >= 0) {
+                lop += change;
+                document.getElementById('lop').innerText = lop;
+                calculateScore();
+            }
+        }
+
+        // Exit bonus per rule 5.6.5: max(0, 60 - 5 x total LoP),
+        // only awarded when the robot reaches the goal and stops 5s.
+        function computeExitBonus() {
+            const reachedGoal = document.getElementById('goalReachedCheck').checked;
+            if (!reachedGoal) return 0;
+            return Math.max(0, 60 - 5 * lop);
+        }
+
         function calculateScore() {
             let hazardPoints = (counts.gaps * 10) + (counts.intersections * 10) + (counts.obstacles * 20);
 
@@ -482,128 +710,393 @@
                 tilePoints += (tiles * multiplier);
             });
 
+            let exitBonus = computeExitBonus();
+
             document.getElementById('hazardTotal').innerText = hazardPoints;
             document.getElementById('tileTotal').innerText = tilePoints;
-            document.getElementById('totalScore').innerText = hazardPoints + tilePoints;
+            document.getElementById('exitBonus').innerText = exitBonus;
+            document.getElementById('exitBonusTotal').innerText = exitBonus;
+            document.getElementById('totalScore').innerText = hazardPoints + tilePoints + exitBonus;
         }
 
-        // Initialize with one segment
-        addSegment();
+        // ====================================================================
+        //  TEAM MANAGEMENT  (persists locally; synced to cloud if configured)
+        // ====================================================================
+        function loadTeamsLocal() {
+            try {
+                teams = JSON.parse(localStorage.getItem('rcapU12Teams')) || [];
+            } catch (e) {
+                teams = [];
+            }
+        }
 
-        // --- LOCAL STORAGE LOGIC ---
-        let runLogs = [];
+        function saveTeamsLocal() {
+            localStorage.setItem('rcapU12Teams', JSON.stringify(teams));
+        }
 
-        // Load logs from browser memory when the page opens
+        function renderTeamDropdowns() {
+            const teamSelect = document.getElementById('teamSelect');
+            const filterTeam = document.getElementById('filterTeam');
+            const current = teamSelect.value;
+            const currentFilter = filterTeam.value;
+
+            teamSelect.innerHTML = teams.length
+                ? teams.map(t => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join('')
+                : '<option value="">— No teams yet —</option>';
+
+            filterTeam.innerHTML = '<option value="__all__">All Teams</option>' +
+                teams.map(t => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join('');
+
+            if (teams.includes(current)) teamSelect.value = current;
+            if (currentFilter === '__all__' || teams.includes(currentFilter)) filterTeam.value = currentFilter;
+        }
+
+        function addTeam() {
+            const input = document.getElementById('newTeamInput');
+            const name = input.value.trim();
+            if (!name) return;
+            if (teams.includes(name)) {
+                alert('That team already exists.');
+                return;
+            }
+            teams.push(name);
+            teams.sort((a, b) => a.localeCompare(b));
+            saveTeamsLocal();
+            renderTeamDropdowns();
+            document.getElementById('teamSelect').value = name;
+            input.value = '';
+
+            if (cloudEnabled) {
+                const fd = new FormData();
+                fd.append('action', 'addTeam');
+                fd.append('Team', name);
+                fetch(scriptURL, { method: 'POST', body: fd }).catch(() => {});
+            }
+        }
+
+        function removeTeam() {
+            const name = document.getElementById('teamSelect').value;
+            if (!name) return;
+            if (!confirm(`Remove team "${name}" from the list? (Saved runs are kept.)`)) return;
+            teams = teams.filter(t => t !== name);
+            saveTeamsLocal();
+            renderTeamDropdowns();
+
+            if (cloudEnabled) {
+                const fd = new FormData();
+                fd.append('action', 'removeTeam');
+                fd.append('Team', name);
+                fetch(scriptURL, { method: 'POST', body: fd }).catch(() => {});
+            }
+        }
+
+        // ====================================================================
+        //  SAVE / LOAD RUNS
+        // ====================================================================
         window.onload = function () {
-            // Fetch from Google instead of just LocalStorage
-            fetch(scriptURL)
-                .then(res => res.json())
-                .then(data => {
-                    if (data && data.length > 0) {
-                        // Map Google data back to our table format
-                        runLogs = data.map(row => ({
-                            dateTime: row.Timestamp,
-                            team: row.Team,
-                            hazards: row.Hazards,
-                            tiles: row.Tiles,
-                            redLine: row.RedLine,
-                            total: row.Total
-                        }));
+            document.getElementById('sessionDate').value = todayISO(); // default to today
+            loadTeamsLocal();
+            loadRunsLocal();
+            renderTeamDropdowns();
+            renderTable();
+            addSegment(); // start with one segment
+
+            if (cloudEnabled) {
+                fetch(scriptURL)
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data && Array.isArray(data.runs)) {
+                            runLogs = data.runs.map(mapCloudRow);
+                            localStorage.setItem('rcapU12Logs', JSON.stringify(runLogs));
+                        } else if (Array.isArray(data)) {
+                            // Backwards-compatible with the old flat format
+                            runLogs = data.map(mapCloudRow);
+                            localStorage.setItem('rcapU12Logs', JSON.stringify(runLogs));
+                        }
+                        if (data && Array.isArray(data.teams) && data.teams.length) {
+                            teams = Array.from(new Set(data.teams.map(String)));
+                            teams.sort((a, b) => a.localeCompare(b));
+                            saveTeamsLocal();
+                        }
+                        renderTeamDropdowns();
                         renderTable();
-                    }
-                });
+                    })
+                    .catch(() => { /* stay in local mode on error */ });
+            }
         };
 
-        // Add your Google Apps Script Web App URL here
-        const scriptURL = 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE';
+        function mapCloudRow(row) {
+            return {
+                dateTime: row.Timestamp || row.dateTime || '',
+                date: row.Date || row.date || '',
+                team: row.Team || row.team || 'Unnamed Team',
+                round: row.Round || row.round || '',
+                gaps: row.Gaps || 0,
+                intersections: row.Intersections || 0,
+                obstacles: row.Obstacles || 0,
+                hazards: row.Hazards || 0,
+                tiles: row.Tiles || row.TilePoints || 0,
+                lop: row.LoP != null ? row.LoP : (row.Lop || 0),
+                exitBonus: row.ExitBonus != null ? row.ExitBonus : 0,
+                total: row.Total || 0
+            };
+        }
+
+        function loadRunsLocal() {
+            try {
+                runLogs = JSON.parse(localStorage.getItem('rcapU12Logs')) || [];
+            } catch (e) {
+                runLogs = [];
+            }
+        }
 
         function saveRun() {
-
-            if (scriptURL === 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE' || scriptURL === '') {
-                alert("⚠️ Cloud saving is not set up! Please read the README to connect your own Google Sheet. Your run will only be saved locally.");
+            const team = document.getElementById('teamSelect').value;
+            if (!team) {
+                alert('⚠️ Please add and select a team before saving a run.');
+                return;
             }
 
             const btn = document.querySelector('.btn-save');
             const originalText = btn.innerText;
-            btn.innerText = "⏳ Syncing to Cloud...";
+
+            const round = document.getElementById('roundName').value || '';
+            const hazards = parseInt(document.getElementById('hazardTotal').innerText) || 0;
+            const tiles = parseInt(document.getElementById('tileTotal').innerText) || 0;
+            const exitBonus = computeExitBonus();
+            const total = parseInt(document.getElementById('totalScore').innerText) || 0;
+
+            // Use the chosen Session Date (YYYY-MM-DD); fall back to today.
+            const sessionDate = document.getElementById('sessionDate').value || todayISO();
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const dateTimeStr = sessionDate + ' ' + timeStr;
+
+            const entry = {
+                dateTime: dateTimeStr, date: sessionDate, team, round,
+                gaps: counts.gaps, intersections: counts.intersections, obstacles: counts.obstacles,
+                hazards, tiles, lop, exitBonus, total
+            };
+
+            // Always save locally so nothing is ever lost.
+            runLogs.push(entry);
+            localStorage.setItem('rcapU12Logs', JSON.stringify(runLogs));
+            renderTable();
+
+            if (!cloudEnabled) {
+                alert('✅ Run saved locally in this browser.\n\n(Tip: set up Google Sheets via the README to sync across devices.)');
+                return;
+            }
+
+            btn.innerText = '⏳ Syncing...';
             btn.disabled = true;
 
-            let team = document.getElementById('teamName').value || "Unnamed Team";
-            let hazards = document.getElementById('hazardTotal').innerText;
-            let tiles = document.getElementById('tileTotal').innerText;
-            let total = document.getElementById('totalScore').innerText;
-            let redLine = document.getElementById('redLineCheck').checked ? "Pass" : "Fail";
-
-            // Prepare data for Google Sheets
-            let formData = new FormData();
+            const formData = new FormData();
+            formData.append('action', 'saveRun');
+            formData.append('Date', sessionDate);
             formData.append('Team', team);
+            formData.append('Round', round);
+            formData.append('Gaps', counts.gaps);
+            formData.append('Intersections', counts.intersections);
+            formData.append('Obstacles', counts.obstacles);
             formData.append('Hazards', hazards);
             formData.append('Tiles', tiles);
-            formData.append('RedLine', redLine);
+            formData.append('LoP', lop);
+            formData.append('ExitBonus', exitBonus);
             formData.append('Total', total);
 
-            // POST to Google Apps Script
             fetch(scriptURL, { method: 'POST', body: formData })
-                .then(response => {
+                .then(() => {
                     btn.innerText = originalText;
                     btn.disabled = false;
-
-                    // Add to local list for immediate display
-                    let now = new Date();
-                    let dateTimeStr = now.toLocaleDateString() + " " + now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-                    runLogs.push({ dateTime: dateTimeStr, team, hazards, tiles, redLine, total });
-                    localStorage.setItem('rcapU12Logs', JSON.stringify(runLogs));
-
-                    renderTable();
-                    alert("🚀 Success! Data synced to Google Sheets.");
+                    alert('🚀 Success! Run synced to Google Sheets.');
                 })
                 .catch(error => {
                     btn.innerText = originalText;
                     btn.disabled = false;
-                    alert('❌ Sync Error: ' + error.message);
+                    alert('⚠️ Saved locally, but cloud sync failed: ' + error.message);
                 });
         }
 
-        function renderTable() {
-            let tbody = document.getElementById('logBody');
-            tbody.innerHTML = ""; // Clear current table
-
-            // Render newest logs at the top
-            let reversedLogs = [...runLogs].reverse();
-
-            reversedLogs.forEach(log => {
-                let rowColor = log.redLine === "Pass" ? "color: var(--success);" : "color: var(--danger);";
-                let row = `<tr>
-                <td style="font-size: 12px; color: var(--text-muted);">${log.dateTime || "-"}</td>
-                <td style="font-weight:bold;">${log.team}</td>
-                <td>${log.hazards}</td>
-                <td>${log.tiles}</td>
-                <td style="font-weight:bold; ${rowColor}">${log.redLine}</td>
-                <td style="font-weight:bold; color: var(--success); font-size: 16px;">${log.total}</td>
-            </tr>`;
-                tbody.innerHTML += row;
-            });
-        }
-
         function clearLogs() {
-            if (confirm("Are you sure? This will wipe the Google Sheet AND local logs!")) {
-                // Change: Use URLSearchParams to ensure Google reads the 'action' parameter correctly
-                fetch(scriptURL + "?action=clear", { method: 'POST' })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.result === 'cleared') {
-                            runLogs = [];
-                            localStorage.removeItem('rcapU12Logs');
-                            renderTable();
-                            alert("Cloud and Local Logs Cleared!");
-                        }
-                    })
-                    .catch(error => alert('Error clearing cloud: ' + error.message));
+            if (!confirm('Are you sure? This wipes all saved runs (cloud and local).')) return;
+
+            runLogs = [];
+            localStorage.removeItem('rcapU12Logs');
+            renderTable();
+
+            if (cloudEnabled) {
+                fetch(scriptURL + '?action=clear', { method: 'POST' })
+                    .then(res => res.json())
+                    .then(() => alert('Cloud and local logs cleared!'))
+                    .catch(error => alert('Local logs cleared. Cloud clear failed: ' + error.message));
+            } else {
+                alert('Local logs cleared!');
             }
         }
 
-        // --- TIMER LOGIC ---
+        // ====================================================================
+        //  TABLE + PROGRESS SUMMARY
+        // ====================================================================
+        function renderTable() {
+            const filter = document.getElementById('filterTeam').value;
+            const tbody = document.getElementById('logBody');
+            tbody.innerHTML = '';
+
+            const filtered = (filter === '__all__')
+                ? runLogs
+                : runLogs.filter(l => l.team === filter);
+
+            [...filtered].reverse().forEach(log => {
+                const lopColor = (Number(log.lop) || 0) > 0 ? 'color: var(--danger);' : 'color: var(--text-muted);';
+                tbody.innerHTML += `<tr>
+                    <td style="font-size: 12px; color: var(--text-muted);">${escapeHtml(log.dateTime) || '-'}</td>
+                    <td style="font-weight:bold;">${escapeHtml(log.team)}</td>
+                    <td>${escapeHtml(log.round) || '-'}</td>
+                    <td>${log.hazards}</td>
+                    <td>${log.tiles}</td>
+                    <td style="font-weight:bold; ${lopColor}">${Number(log.lop) || 0}</td>
+                    <td>${Number(log.exitBonus) || 0}</td>
+                    <td style="font-weight:bold; color: var(--success); font-size: 16px;">${log.total}</td>
+                </tr>`;
+            });
+
+            updateStats(filtered);
+            renderRanking();
+        }
+
+        // ====================================================================
+        //  COMPETITION RANKING  (rule 6.1 — normalized field scores)
+        //  - Runs are grouped by their Round label.
+        //  - Within each round we take each team's BEST run.
+        //  - Each team's round score is normalized by the best score in that round.
+        //  - A team's ranking metric is the mean of its normalized scores across
+        //    the rounds it participated in.
+        // ====================================================================
+        function renderRanking() {
+            const rankBody = document.getElementById('rankBody');
+            rankBody.innerHTML = '';
+
+            if (!runLogs.length) {
+                rankBody.innerHTML = '<tr><td colspan="5" style="color: var(--text-muted);">No runs logged yet.</td></tr>';
+                return;
+            }
+
+            // Group: round -> team -> best total
+            const rounds = {};
+            runLogs.forEach(log => {
+                const round = (log.round && String(log.round).trim()) || 'Unlabelled';
+                const team = log.team || 'Unnamed Team';
+                const total = Number(log.total) || 0;
+                rounds[round] = rounds[round] || {};
+                if (rounds[round][team] == null || total > rounds[round][team]) {
+                    rounds[round][team] = total;
+                }
+            });
+
+            // Per team: collect normalized scores across rounds
+            const teamStats = {}; // team -> { normSum, roundCount, best }
+            Object.keys(rounds).forEach(round => {
+                const teamScores = rounds[round];
+                const best = Math.max(...Object.values(teamScores));
+                Object.keys(teamScores).forEach(team => {
+                    const score = teamScores[team];
+                    const normalized = best > 0 ? score / best : 0;
+                    teamStats[team] = teamStats[team] || { normSum: 0, roundCount: 0, best: 0 };
+                    teamStats[team].normSum += normalized;
+                    teamStats[team].roundCount += 1;
+                    if (score > teamStats[team].best) teamStats[team].best = score;
+                });
+            });
+
+            // Build ranking rows
+            const ranking = Object.keys(teamStats).map(team => {
+                const s = teamStats[team];
+                return {
+                    team,
+                    rounds: s.roundCount,
+                    best: s.best,
+                    mean: s.roundCount ? s.normSum / s.roundCount : 0
+                };
+            });
+
+            // Sort by mean normalized desc, then best run desc as tiebreaker
+            ranking.sort((a, b) => (b.mean - a.mean) || (b.best - a.best));
+
+            ranking.forEach((r, i) => {
+                const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1);
+                rankBody.innerHTML += `<tr>
+                    <td style="font-weight:bold;">${medal}</td>
+                    <td style="font-weight:bold;">${escapeHtml(r.team)}</td>
+                    <td>${r.rounds}</td>
+                    <td>${r.best}</td>
+                    <td style="font-weight:bold; color: var(--primary);">${r.mean.toFixed(3)}</td>
+                </tr>`;
+            });
+        }
+
+        function updateStats(logs) {
+            const runsEl = document.getElementById('statRuns');
+            const bestEl = document.getElementById('statBest');
+            const avgEl = document.getElementById('statAvg');
+            const trendEl = document.getElementById('statTrend');
+
+            if (!logs.length) {
+                runsEl.innerText = '0';
+                bestEl.innerText = '0';
+                avgEl.innerText = '0';
+                trendEl.innerText = '—';
+                trendEl.className = 'value trend-flat';
+                return;
+            }
+
+            const totals = logs.map(l => Number(l.total) || 0);
+            const best = Math.max(...totals);
+            const avg = Math.round(totals.reduce((a, b) => a + b, 0) / totals.length);
+
+            runsEl.innerText = logs.length;
+            bestEl.innerText = best;
+            avgEl.innerText = avg;
+
+            // Trend compares the two most recent runs (chronological order = array order)
+            if (totals.length >= 2) {
+                const last = totals[totals.length - 1];
+                const prev = totals[totals.length - 2];
+                const diff = last - prev;
+                if (diff > 0) {
+                    trendEl.innerText = '▲ +' + diff;
+                    trendEl.className = 'value trend-up';
+                } else if (diff < 0) {
+                    trendEl.innerText = '▼ ' + diff;
+                    trendEl.className = 'value trend-down';
+                } else {
+                    trendEl.innerText = '= 0';
+                    trendEl.className = 'value trend-flat';
+                }
+            } else {
+                trendEl.innerText = 'first run';
+                trendEl.className = 'value trend-flat';
+            }
+        }
+
+        // Local date as YYYY-MM-DD (avoids UTC off-by-one from toISOString()).
+        function todayISO() {
+            const d = new Date();
+            const off = d.getTimezoneOffset();
+            return new Date(d.getTime() - off * 60000).toISOString().slice(0, 10);
+        }
+
+        function escapeHtml(str) {
+            return String(str == null ? '' : str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        // ====================================================================
+        //  TIMER
+        // ====================================================================
         let timeLeft = 300;
         let timerInterval = null;
 
@@ -611,7 +1104,7 @@
             let minutes = Math.floor(timeLeft / 60);
             let seconds = timeLeft % 60;
             document.getElementById('timerDisplay').innerText =
-                (minutes < 10 ? "0" : "") + minutes + ":" + (seconds < 10 ? "0" : "") + seconds;
+                (minutes < 10 ? '0' : '') + minutes + ':' + (seconds < 10 ? '0' : '') + seconds;
         }
 
         function startTimer() {
@@ -634,6 +1127,11 @@
             timeLeft = 300;
             updateTimerDisplay();
         }
+
+        // Recalculate total when the goal-reached box is toggled.
+        document.addEventListener('DOMContentLoaded', function () {
+            document.getElementById('goalReachedCheck').addEventListener('change', calculateScore);
+        });
     </script>
 
 </body>
