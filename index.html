@@ -442,7 +442,11 @@
         </div>
 
         <div class="card" style="border-radius: 0 0 8px 8px; margin-top: 0;">
-            <div class="info-grid">
+            <div class="info-grid" style="grid-template-columns: 1fr 1fr 1fr;">
+                <div class="form-group">
+                    <label>Session Date</label>
+                    <input type="date" id="sessionDate">
+                </div>
                 <div class="form-group">
                     <label>Competition / Session Name</label>
                     <input type="text" id="compName" placeholder="e.g., Track A Practice">
@@ -790,6 +794,7 @@
         //  SAVE / LOAD RUNS
         // ====================================================================
         window.onload = function () {
+            document.getElementById('sessionDate').value = todayISO(); // default to today
             loadTeamsLocal();
             loadRunsLocal();
             renderTeamDropdowns();
@@ -823,6 +828,7 @@
         function mapCloudRow(row) {
             return {
                 dateTime: row.Timestamp || row.dateTime || '',
+                date: row.Date || row.date || '',
                 team: row.Team || row.team || 'Unnamed Team',
                 round: row.Round || row.round || '',
                 gaps: row.Gaps || 0,
@@ -860,12 +866,14 @@
             const exitBonus = computeExitBonus();
             const total = parseInt(document.getElementById('totalScore').innerText) || 0;
 
+            // Use the chosen Session Date (YYYY-MM-DD); fall back to today.
+            const sessionDate = document.getElementById('sessionDate').value || todayISO();
             const now = new Date();
-            const dateTimeStr = now.toLocaleDateString() + ' ' +
-                now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const dateTimeStr = sessionDate + ' ' + timeStr;
 
             const entry = {
-                dateTime: dateTimeStr, team, round,
+                dateTime: dateTimeStr, date: sessionDate, team, round,
                 gaps: counts.gaps, intersections: counts.intersections, obstacles: counts.obstacles,
                 hazards, tiles, lop, exitBonus, total
             };
@@ -885,6 +893,7 @@
 
             const formData = new FormData();
             formData.append('action', 'saveRun');
+            formData.append('Date', sessionDate);
             formData.append('Team', team);
             formData.append('Round', round);
             formData.append('Gaps', counts.gaps);
@@ -1068,6 +1077,13 @@
                 trendEl.innerText = 'first run';
                 trendEl.className = 'value trend-flat';
             }
+        }
+
+        // Local date as YYYY-MM-DD (avoids UTC off-by-one from toISOString()).
+        function todayISO() {
+            const d = new Date();
+            const off = d.getTimezoneOffset();
+            return new Date(d.getTime() - off * 60000).toISOString().slice(0, 10);
         }
 
         function escapeHtml(str) {

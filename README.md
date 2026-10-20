@@ -66,10 +66,10 @@ Open: https://sheets.new/
 
 Rename the first tab to **`Runs`** and add these headers in the **first row** (exactly):
 
-| Timestamp | Team | Round | Gaps | Intersections | Obstacles | Hazards | Tiles | LoP | ExitBonus | Total |
-|---|---|---|---|---|---|---|---|---|---|---|
+| Timestamp | Date | Team | Round | Gaps | Intersections | Obstacles | Hazards | Tiles | LoP | ExitBonus | Total |
+|---|---|---|---|---|---|---|---|---|---|---|---|
 
-> **Why the extra columns?** Storing the hazard breakdown (gaps / intersections / obstacles) and the Lack-of-Progress count per run — not just the total — lets you spot exactly where a team is losing points, and makes it easy to build pivot tables or charts per team.
+> **Why the extra columns?** `Timestamp` is when the row was recorded, while `Date` is the **training session date you chose** (defaults to today, but editable so you can log a past week). Storing the hazard breakdown (gaps / intersections / obstacles) and the Lack-of-Progress count per run — not just the total — lets you spot exactly where a team is losing points and track week-by-week progress.
 
 ### 3. Create the `Teams` tab
 
@@ -160,6 +160,7 @@ function doPost(e) {
   // Default: save a run
   runsSheet.appendRow([
     new Date().toLocaleString(),
+    e.parameter.Date || '',
     e.parameter.Team || '',
     e.parameter.Round || '',
     e.parameter.Gaps || 0,
@@ -216,7 +217,7 @@ const scriptURL = 'https://script.google.com/macros/s/XXXXXXXXXXXXXXXXXXXX/exec'
 # 🖥️ Usage
 
 1. **Add your teams** once, using the "Add a New Team" box. They stay in the dropdown.
-2. **Select the active team** and enter the session name / round.
+2. **Set the Session Date** (defaults to today — change it if you're logging a past training week), then **select the active team** and enter the session name / round.
 3. Start the timer when a run begins.
 4. Record hazards (gaps, intersections, obstacles) as they occur.
 5. Add checkpoint segments and tile counts, and pick the attempt multiplier.
@@ -259,7 +260,7 @@ Teams are ordered by that mean (highest first); ties are broken by best single r
 - Confirm `doGet()` exists and the deployment was updated after any code change, then refresh.
 
 ## Upgrading from the old single-sheet version
-- The dashboard still reads the old flat format, so existing data will load. To get the new per-team columns, add the extra headers to your `Runs` tab (or start a fresh sheet) and create the `Teams` tab.
+- The dashboard still reads the old flat format, so existing data will load. To get the new per-team and per-week columns, add the extra headers (including `Date`) to your `Runs` tab (or start a fresh sheet) and create the `Teams` tab. Make sure the `Runs` column order matches the Apps Script's `appendRow` above.
 
 ---
 
