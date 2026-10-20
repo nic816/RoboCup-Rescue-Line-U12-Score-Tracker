@@ -114,20 +114,6 @@
         .toast.error { border-left-color: var(--danger); }
         .toast.info { border-left-color: var(--primary); }
 
-        /* Keyboard shortcut hint pills */
-        .kbd-hint {
-            display: inline-block;
-            font-size: 10px;
-            color: var(--text-muted);
-            background: rgba(255, 255, 255, 0.06);
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            padding: 1px 6px;
-            margin-left: 6px;
-            font-family: monospace;
-            vertical-align: middle;
-        }
-
         .timer-controls button {
             margin-left: 5px;
             padding: 8px 12px;
@@ -539,7 +525,6 @@
                     <button class="btn-start" onclick="startTimer()">Start</button>
                     <button class="btn-stop" onclick="stopTimer()">Stop</button>
                     <button class="btn-reset" onclick="resetTimer()">Reset</button>
-                    <span class="kbd-hint" title="Spacebar toggles the timer">Space</span>
                 </div>
             </div>
         </div>
@@ -603,10 +588,10 @@
         </div>
 
         <div class="card">
-            <h3>1. Hazard Navigation <span class="kbd-hint" style="text-transform:none; letter-spacing:0;">keys: G / I / O</span></h3>
+            <h3>1. Hazard Navigation</h3>
             <div class="hazard-grid">
                 <div class="hazard-box">
-                    <strong style="color: var(--text-main);">Gaps</strong><span class="kbd-hint">G</span>
+                    <strong style="color: var(--text-main);">Gaps</strong>
                     <span>(10 pts each)</span>
                     <div class="btn-group">
                         <button onclick="updateCount('gaps', -1)">-</button>
@@ -615,7 +600,7 @@
                     </div>
                 </div>
                 <div class="hazard-box">
-                    <strong style="color: var(--text-main);">Intersections</strong><span class="kbd-hint">I</span>
+                    <strong style="color: var(--text-main);">Intersections</strong>
                     <span>(10 pts each)</span>
                     <div class="btn-group">
                         <button onclick="updateCount('intersections', -1)">-</button>
@@ -624,7 +609,7 @@
                     </div>
                 </div>
                 <div class="hazard-box">
-                    <strong style="color: var(--text-main);">Obstacles</strong><span class="kbd-hint">O</span>
+                    <strong style="color: var(--text-main);">Obstacles</strong>
                     <span>(20 pts each)</span>
                     <div class="btn-group">
                         <button onclick="updateCount('obstacles', -1)">-</button>
@@ -646,7 +631,7 @@
 
             <div class="hazard-grid" style="grid-template-columns: 1fr 1fr; margin-bottom: 15px;">
                 <div class="hazard-box">
-                    <strong style="color: var(--text-main);">Lack of Progress (LoP)</strong><span class="kbd-hint">L</span>
+                    <strong style="color: var(--text-main);">Lack of Progress (LoP)</strong>
                     <span>(−5 pts each, off the exit bonus)</span>
                     <div class="btn-group">
                         <button onclick="updateLop(-1)">-</button>
@@ -1347,47 +1332,6 @@
             stopTimer();
             timeLeft = 300;
             updateTimerDisplay();
-        }
-
-        // Toggle the timer with the Space bar.
-        function toggleTimer() {
-            if (timerInterval) {
-                stopTimer();
-            } else {
-                startTimer();
-            }
-        }
-
-        // Only act on shortcuts when not typing in a field.
-        function isTypingTarget(el) {
-            if (!el) return false;
-            const tag = el.tagName;
-            return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el.isContentEditable;
-        }
-
-        document.addEventListener('keydown', function (e) {
-            if (isTypingTarget(e.target) || e.ctrlKey || e.metaKey || e.altKey) return;
-
-            switch (e.key.toLowerCase()) {
-                case 'g': updateCount('gaps', 1); flashBox('gaps'); break;
-                case 'i': updateCount('intersections', 1); flashBox('intersections'); break;
-                case 'o': updateCount('obstacles', 1); flashBox('obstacles'); break;
-                case 'l': updateLop(1); flashBox('lop'); break;
-                case ' ':
-                    e.preventDefault(); // stop page scroll
-                    toggleTimer();
-                    break;
-                default: return;
-            }
-        });
-
-        // Brief highlight so a keyboard press gives visible feedback.
-        function flashBox(id) {
-            const el = document.getElementById(id);
-            if (!el) return;
-            el.style.transition = 'color 0.1s';
-            el.style.color = 'var(--success)';
-            setTimeout(() => { el.style.color = ''; }, 200);
         }
 
         // Recalculate total when the goal-reached box is toggled.
