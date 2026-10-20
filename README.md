@@ -15,6 +15,7 @@ A lightweight scoring dashboard for **RCAP Rescue Line Entry, U12** training run
 - **Hazard Counters** — Gaps (10 pts), Intersections (10 pts), Obstacles (20 pts).
 - **Checkpoint Segments** — Dynamic list with tile counts and attempt multipliers.
 - **Exit Bonus** — Lack-of-Progress counter and a "reached goal" toggle, computing the official exit bonus automatically.
+- **Cloud sync without editing code** — Paste your own Google Apps Script URL into the in-app **Cloud Sync Settings** panel; it's saved only in your browser. No code changes, so the project stays clean and open-source friendly.
 - **Works Offline** — Runs entirely in the browser. Cloud saving to Google Sheets is optional.
 - **No Server Required** — Pure HTML/JS plus optional Google Apps Script.
 
@@ -195,22 +196,20 @@ function json(obj) {
 
 ## Step 3: Connect the Tracker to Your Google Sheet
 
-1. Open `index.html` in a text editor (VS Code, Notepad++, Sublime, Notepad).
-2. Find this line near the top of the `<script>` section:
+**No code editing needed.** In the running app (whether you opened the file locally or via a hosted link):
 
-```javascript
-const scriptURL = 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE';
-```
+1. Open the **☁️ Cloud Sync Settings** panel (in the top card, under the team controls).
+2. Paste your copied Google Apps Script `/exec` URL into the **Google Apps Script URL** box.
+3. Click **Save & Sync**. The status flips to **Connected ✓** and your existing sheet data loads.
 
-3. Replace the placeholder with your copied URL:
+Your URL is stored **only in that browser** (via `localStorage`) — it is never saved into the code or committed to the repo. That means:
 
-```javascript
-const scriptURL = 'https://script.google.com/macros/s/XXXXXXXXXXXXXXXXXXXX/exec';
-```
+- **One hosted link can serve everyone.** You paste your URL on each of your devices (laptop, phone, iPad) and they all sync to *your* sheet. Another trainer opens the same link and pastes *their* URL to use *their* own sheet.
+- To stop syncing on a device, open Settings and click **Disconnect**.
 
-4. Save the file and open it in your browser. You're now in cloud mode.
+> If you never paste a URL, the tracker still works fully — it just saves to the local browser instead of the cloud.
 
-> If you leave the placeholder as-is, the tracker still works fully — it just saves to the local browser instead of the cloud.
+> **Advanced (optional):** developers hosting their own private copy can hardcode a URL in the `DEFAULT_SCRIPT_URL` constant near the top of the `<script>` in `index.html`. Leave it empty for open-source builds.
 
 ---
 
