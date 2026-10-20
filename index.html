@@ -245,24 +245,34 @@
             border: 1px solid var(--border-color);
         }
 
+        /* Space between the label and the +/- controls (subtitles were removed). */
+        .hazard-box strong {
+            display: block;
+            margin-bottom: 12px;
+        }
+
         .btn-group {
             display: flex;
             justify-content: center;
             align-items: center;
-            gap: 15px;
+            gap: 14px;
         }
 
         .btn-group button {
-            width: 56px;
-            height: 56px;
-            font-size: 28px;
+            width: 42px;
+            height: 42px;
+            font-size: 22px;
+            line-height: 1;
             border: none;
-            border-radius: 8px;
+            border-radius: 50%;
             background: var(--primary);
             color: #000;
             font-weight: bold;
             cursor: pointer;
             transition: 0.1s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             -webkit-tap-highlight-color: transparent;
             user-select: none;
             touch-action: manipulation;
@@ -280,9 +290,9 @@
         }
 
         .btn-group span {
-            font-size: 34px;
+            font-size: 26px;
             font-weight: bold;
-            min-width: 44px;
+            min-width: 36px;
         }
 
         /* Checkpoints */
@@ -490,12 +500,34 @@
             }
 
             .score-board {
-                font-size: 28px;
+                font-size: 26px;
             }
 
-            .btn-group button {
-                width: 52px;
-                height: 52px;
+            /* The 3 hazard counters don't fit side-by-side on a phone —
+               stack them one per row so each gets full width. */
+            .hazard-grid:not(.lop-grid) {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+
+            /* Make each stacked hazard box a tidy single row: label left, controls right. */
+            .hazard-grid:not(.lop-grid) .hazard-box {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 12px 15px;
+            }
+
+            .hazard-grid:not(.lop-grid) .hazard-box strong {
+                margin-bottom: 0;
+            }
+
+            .hazard-box {
+                padding: 12px;
+            }
+
+            .card {
+                padding: 15px;
             }
         }
     </style>
@@ -614,7 +646,7 @@
         <div class="card">
             <h3>3. Exit Bonus & Session Log</h3>
 
-            <div class="hazard-grid" style="grid-template-columns: 1fr 1fr; margin-bottom: 15px;">
+            <div class="hazard-grid lop-grid" style="grid-template-columns: 1fr 1fr; margin-bottom: 15px;">
                 <div class="hazard-box">
                     <strong style="color: var(--text-main);">Lack of Progress (LoP)</strong>
                     <div class="btn-group">
