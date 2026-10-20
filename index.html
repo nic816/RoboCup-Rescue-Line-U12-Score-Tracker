@@ -575,6 +575,31 @@
                 <button class="btn-mini" onclick="addTeam()">+ Add Team</button>
                 <button class="btn-mini danger" onclick="removeTeam()">Remove Selected</button>
             </div>
+
+            <!-- Cloud settings: each user pastes their OWN Apps Script URL here.
+                 Stored only in this browser (localStorage), never in the code. -->
+            <div style="margin-top: 15px; border-top: 1px solid var(--border-color); padding-top: 12px;">
+                <div style="display:flex; align-items:center; justify-content:space-between; cursor:pointer;" onclick="toggleSettings()">
+                    <strong style="color: var(--text-muted); font-size: 14px;">
+                        ☁️ Cloud Sync Settings — <span id="cloudStatus">Local only</span>
+                    </strong>
+                    <span id="settingsChevron" style="color: var(--text-muted);">▸</span>
+                </div>
+                <div id="settingsBody" style="display:none; margin-top: 12px;">
+                    <p style="font-size: 12px; color: var(--text-muted); margin: 0 0 8px;">
+                        Paste your <strong>own</strong> Google Apps Script Web App URL (see the README) to sync runs to
+                        your Google Sheet across devices. It is saved only in this browser.
+                    </p>
+                    <div class="team-manager" style="margin-top: 0;">
+                        <div class="form-group">
+                            <label>Google Apps Script URL</label>
+                            <input type="text" id="scriptUrlInput" placeholder="https://script.google.com/macros/s/..../exec">
+                        </div>
+                        <button class="btn-mini" onclick="saveScriptURL()">Save & Sync</button>
+                        <button class="btn-mini danger" onclick="clearScriptURL()">Disconnect</button>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div class="card">
@@ -737,11 +762,76 @@
 
     <script>
         // ====================================================================
-        //  CONFIG — paste your Google Apps Script Web App URL here.
-        //  Leave as-is to run in local-only mode (saves in this browser).
+        //  CONFIG
+        //  There is no hardcoded URL here — keeping the repo clean and
+        //  open-source friendly. Each user pastes their own Google Apps Script
+        //  Web App URL via the in-app Settings panel; it is stored only in
+        //  their own browser (localStorage), never committed to the code.
+        //  (Optional: advanced users may still hardcode one in DEFAULT_SCRIPT_URL.)
         // ====================================================================
-        const scriptURL = 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE';
-        const cloudEnabled = scriptURL && scriptURL !== 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE';
+        const DEFAULT_SCRIPT_URL = ''; // leave empty for open-source builds
+        const PLACEHOLDER = 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE';
+
+        // The active URL is whatever the user saved in Settings, else the optional default.
+        function getScriptURL() {
+            const saved = (localStorage.getItem('rcapU12ScriptURL') || '').trim();
+            if (saved) return saved;
+            if (DEFAULT_SCRIPT_URL && DEFAULT_SCRIPT_URL !== PLACEHOLDER) return DEFAULT_SCRIPT_URL;
+            return '';
+        }
+
+        function isCloudEnabled() {
+            return !!getScriptURL();
+        }
+
+        // --- Settings panel (cloud URL management) ---
+        function toggleSettings() {
+            const body = document.getElementById('settingsBody');
+            const chev = document.getElementById('settingsChevron');
+            const open = body.style.display === 'none';
+            body.style.display = open ? 'block' : 'none';
+            chev.textContent = open ? '▾' : '▸';
+        }
+
+        // Reflect current connection state in the UI.
+        function refreshSettingsUI() {
+            const status = document.getElementById('cloudStatus');
+            const input = document.getElementById('scriptUrlInput');
+            const url = getScriptURL();
+            if (url) {
+                status.textContent = 'Connected ✓';
+                status.style.color = 'var(--success)';
+                if (input && !input.value) input.value = localStorage.getItem('rcapU12ScriptURL') || '';
+            } else {
+                status.textContent = 'Local only';
+                status.style.color = 'var(--text-muted)';
+            }
+        }
+
+        function saveScriptURL() {
+            const input = document.getElementById('scriptUrlInput');
+            const url = (input.value || '').trim();
+            if (!url) {
+                showToast('Please paste your Apps Script URL first.', 'error');
+                return;
+            }
+            if (!/^https:\/\/script\.google\.com\/.+\/exec$/.test(url)) {
+                // Warn but still allow — some deployments use custom domains.
+                if (!confirm('That does not look like a standard "/exec" Apps Script URL. Save it anyway?')) return;
+            }
+            localStorage.setItem('rcapU12ScriptURL', url);
+            refreshSettingsUI();
+            showToast('☁️ Cloud sync connected. Loading your data...', 'success');
+            syncFromCloud();
+        }
+
+        function clearScriptURL() {
+            if (!confirm('Disconnect cloud sync on this device? Your Google Sheet data stays safe; this only stops syncing here.')) return;
+            localStorage.removeItem('rcapU12ScriptURL');
+            document.getElementById('scriptUrlInput').value = '';
+            refreshSettingsUI();
+            showToast('Disconnected. Now in local-only mode.', 'info');
+        }
 
         // --- STATE ---
         let counts = { gaps: 0, intersections: 0, obstacles: 0 };
@@ -872,11 +962,11 @@
             document.getElementById('teamSelect').value = name;
             input.value = '';
 
-            if (cloudEnabled) {
+            if (isCloudEnabled()) {
                 const fd = new FormData();
                 fd.append('action', 'addTeam');
                 fd.append('Team', name);
-                fetch(scriptURL, { method: 'POST', body: fd }).catch(() => {});
+                fetch(getScriptURL(), { method: 'POST', body: fd }).catch(() => {});
             }
         }
 
@@ -888,11 +978,11 @@
             saveTeamsLocal();
             renderTeamDropdowns();
 
-            if (cloudEnabled) {
+            if (isCloudEnabled()) {
                 const fd = new FormData();
                 fd.append('action', 'removeTeam');
                 fd.append('Team', name);
-                fetch(scriptURL, { method: 'POST', body: fd }).catch(() => {});
+                fetch(getScriptURL(), { method: 'POST', body: fd }).catch(() => {});
             }
         }
 
@@ -906,30 +996,34 @@
             renderTeamDropdowns();
             renderTable();
             addSegment(); // start with one segment
-
-            if (cloudEnabled) {
-                fetch(scriptURL)
-                    .then(res => res.json())
-                    .then(data => {
-                        if (data && Array.isArray(data.runs)) {
-                            runLogs = data.runs.map(mapCloudRow);
-                            localStorage.setItem('rcapU12Logs', JSON.stringify(runLogs));
-                        } else if (Array.isArray(data)) {
-                            // Backwards-compatible with the old flat format
-                            runLogs = data.map(mapCloudRow);
-                            localStorage.setItem('rcapU12Logs', JSON.stringify(runLogs));
-                        }
-                        if (data && Array.isArray(data.teams) && data.teams.length) {
-                            teams = Array.from(new Set(data.teams.map(String)));
-                            teams.sort((a, b) => a.localeCompare(b));
-                            saveTeamsLocal();
-                        }
-                        renderTeamDropdowns();
-                        renderTable();
-                    })
-                    .catch(() => { /* stay in local mode on error */ });
-            }
+            refreshSettingsUI();
+            syncFromCloud();
         };
+
+        // Pull runs + teams from the Google Sheet (only if a URL is configured).
+        function syncFromCloud() {
+            if (!isCloudEnabled()) return;
+            fetch(getScriptURL())
+                .then(res => res.json())
+                .then(data => {
+                    if (data && Array.isArray(data.runs)) {
+                        runLogs = data.runs.map(mapCloudRow);
+                        localStorage.setItem('rcapU12Logs', JSON.stringify(runLogs));
+                    } else if (Array.isArray(data)) {
+                        // Backwards-compatible with the old flat format
+                        runLogs = data.map(mapCloudRow);
+                        localStorage.setItem('rcapU12Logs', JSON.stringify(runLogs));
+                    }
+                    if (data && Array.isArray(data.teams) && data.teams.length) {
+                        teams = Array.from(new Set(data.teams.map(String)));
+                        teams.sort((a, b) => a.localeCompare(b));
+                        saveTeamsLocal();
+                    }
+                    renderTeamDropdowns();
+                    renderTable();
+                })
+                .catch(() => { /* stay in local mode on error */ });
+        }
 
         function mapCloudRow(row) {
             return {
@@ -989,7 +1083,7 @@
             localStorage.setItem('rcapU12Logs', JSON.stringify(runLogs));
             renderTable();
 
-            if (!cloudEnabled) {
+            if (!isCloudEnabled()) {
                 showToast('✅ Run saved locally for ' + team + '.', 'success');
                 return;
             }
@@ -1011,7 +1105,7 @@
             formData.append('ExitBonus', exitBonus);
             formData.append('Total', total);
 
-            fetch(scriptURL, { method: 'POST', body: formData })
+            fetch(getScriptURL(), { method: 'POST', body: formData })
                 .then(() => {
                     btn.innerText = originalText;
                     btn.disabled = false;
@@ -1031,13 +1125,13 @@
             localStorage.removeItem('rcapU12Logs');
             renderTable();
 
-            if (cloudEnabled) {
-                fetch(scriptURL + '?action=clear', { method: 'POST' })
+            if (isCloudEnabled()) {
+                fetch(getScriptURL() + '?action=clear', { method: 'POST' })
                     .then(res => res.json())
-                    .then(() => alert('Cloud and local logs cleared!'))
-                    .catch(error => alert('Local logs cleared. Cloud clear failed: ' + error.message));
+                    .then(() => showToast('Cloud and local logs cleared.', 'info'))
+                    .catch(() => showToast('Local logs cleared. Cloud clear failed.', 'error'));
             } else {
-                alert('Local logs cleared!');
+                showToast('Local logs cleared.', 'info');
             }
         }
 
