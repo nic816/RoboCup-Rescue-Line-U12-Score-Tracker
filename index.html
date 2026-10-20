@@ -26,8 +26,6 @@
             color: var(--text-main);
             margin: 0;
             padding: 20px;
-            /* Extra bottom space so the sticky score board never hides content. */
-            padding-bottom: 140px;
         }
 
         .container {
@@ -247,13 +245,6 @@
             border: 1px solid var(--border-color);
         }
 
-        .hazard-box span {
-            display: block;
-            font-size: 12px;
-            color: var(--text-muted);
-            margin-bottom: 10px;
-        }
-
         .btn-group {
             display: flex;
             justify-content: center;
@@ -452,7 +443,7 @@
             color: var(--text-muted);
         }
 
-        /* Score Board */
+        /* Score Board — sits at the end of the page (not sticky). */
         .score-board {
             background: #020617;
             color: var(--success);
@@ -462,9 +453,7 @@
             font-size: 36px;
             font-weight: bold;
             border: 2px solid var(--success);
-            position: sticky;
-            bottom: 20px;
-            z-index: 100;
+            margin-top: 10px;
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
         }
 
@@ -478,7 +467,6 @@
         @media (max-width: 600px) {
             body {
                 padding: 12px;
-                padding-bottom: 150px;
             }
 
             .stat-grid {
@@ -592,7 +580,6 @@
             <div class="hazard-grid">
                 <div class="hazard-box">
                     <strong style="color: var(--text-main);">Gaps</strong>
-                    <span>(10 pts each)</span>
                     <div class="btn-group">
                         <button onclick="updateCount('gaps', -1)">-</button>
                         <span id="gaps">0</span>
@@ -601,7 +588,6 @@
                 </div>
                 <div class="hazard-box">
                     <strong style="color: var(--text-main);">Intersections</strong>
-                    <span>(10 pts each)</span>
                     <div class="btn-group">
                         <button onclick="updateCount('intersections', -1)">-</button>
                         <span id="intersections">0</span>
@@ -610,7 +596,6 @@
                 </div>
                 <div class="hazard-box">
                     <strong style="color: var(--text-main);">Obstacles</strong>
-                    <span>(20 pts each)</span>
                     <div class="btn-group">
                         <button onclick="updateCount('obstacles', -1)">-</button>
                         <span id="obstacles">0</span>
@@ -632,7 +617,6 @@
             <div class="hazard-grid" style="grid-template-columns: 1fr 1fr; margin-bottom: 15px;">
                 <div class="hazard-box">
                     <strong style="color: var(--text-main);">Lack of Progress (LoP)</strong>
-                    <span>(−5 pts each, off the exit bonus)</span>
                     <div class="btn-group">
                         <button onclick="updateLop(-1)">-</button>
                         <span id="lop">0</span>
@@ -641,8 +625,7 @@
                 </div>
                 <div class="hazard-box">
                     <strong style="color: var(--text-main);">Exit Bonus</strong>
-                    <span>max(0, 60 − 5 × LoP) — goal only</span>
-                    <div style="font-size: 26px; font-weight: bold; color: var(--success); margin-top: 8px;" id="exitBonus">0</div>
+                    <div style="font-size: 26px; font-weight: bold; color: var(--success); margin-top: 12px;" id="exitBonus">0</div>
                 </div>
             </div>
 
