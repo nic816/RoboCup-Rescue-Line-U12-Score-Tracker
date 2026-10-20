@@ -26,6 +26,8 @@
             color: var(--text-main);
             margin: 0;
             padding: 20px;
+            /* Extra bottom space so the sticky score board never hides content. */
+            padding-bottom: 140px;
         }
 
         .container {
@@ -63,6 +65,67 @@
             border-radius: 5px;
             letter-spacing: 2px;
             border: 1px solid var(--border-color);
+            transition: color 0.3s, border-color 0.3s;
+        }
+
+        /* Timer warning states */
+        .timer-display.warning {
+            color: var(--warning);
+            border-color: var(--warning);
+        }
+
+        .timer-display.danger {
+            color: var(--danger);
+            border-color: var(--danger);
+            animation: timerPulse 1s infinite;
+        }
+
+        @keyframes timerPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.45; }
+        }
+
+        /* Non-blocking save/action toast */
+        .toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-20px);
+            background: var(--card-bg);
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+            border-left: 4px solid var(--success);
+            padding: 14px 22px;
+            border-radius: 8px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            font-weight: bold;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s, transform 0.25s;
+            max-width: 90vw;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .toast.error { border-left-color: var(--danger); }
+        .toast.info { border-left-color: var(--primary); }
+
+        /* Keyboard shortcut hint pills */
+        .kbd-hint {
+            display: inline-block;
+            font-size: 10px;
+            color: var(--text-muted);
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 1px 6px;
+            margin-left: 6px;
+            font-family: monospace;
+            vertical-align: middle;
         }
 
         .timer-controls button {
@@ -213,16 +276,19 @@
         }
 
         .btn-group button {
-            width: 40px;
-            height: 40px;
-            font-size: 20px;
+            width: 56px;
+            height: 56px;
+            font-size: 28px;
             border: none;
-            border-radius: 5px;
+            border-radius: 8px;
             background: var(--primary);
             color: #000;
             font-weight: bold;
             cursor: pointer;
-            transition: 0.2s;
+            transition: 0.1s;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+            touch-action: manipulation;
         }
 
         .btn-group button:hover {
@@ -230,10 +296,16 @@
             color: white;
         }
 
+        /* Quick visual confirmation on tap */
+        .btn-group button:active {
+            transform: scale(0.92);
+            background: var(--primary-hover);
+        }
+
         .btn-group span {
-            font-size: 22px;
+            font-size: 34px;
             font-weight: bold;
-            width: 30px;
+            min-width: 44px;
         }
 
         /* Checkpoints */
@@ -418,8 +490,38 @@
         }
 
         @media (max-width: 600px) {
+            body {
+                padding: 12px;
+                padding-bottom: 150px;
+            }
+
             .stat-grid {
                 grid-template-columns: repeat(2, 1fr);
+            }
+
+            /* Stack header: title on top, timer + controls below */
+            .header-panel {
+                justify-content: center;
+                text-align: center;
+            }
+
+            .header-panel h2 {
+                font-size: 17px;
+                width: 100%;
+            }
+
+            /* Session date / name / round stack on phones */
+            .info-grid {
+                grid-template-columns: 1fr !important;
+            }
+
+            .score-board {
+                font-size: 28px;
+            }
+
+            .btn-group button {
+                width: 52px;
+                height: 52px;
             }
         }
     </style>
@@ -437,6 +539,7 @@
                     <button class="btn-start" onclick="startTimer()">Start</button>
                     <button class="btn-stop" onclick="stopTimer()">Stop</button>
                     <button class="btn-reset" onclick="resetTimer()">Reset</button>
+                    <span class="kbd-hint" title="Spacebar toggles the timer">Space</span>
                 </div>
             </div>
         </div>
@@ -475,10 +578,10 @@
         </div>
 
         <div class="card">
-            <h3>1. Hazard Navigation</h3>
+            <h3>1. Hazard Navigation <span class="kbd-hint" style="text-transform:none; letter-spacing:0;">keys: G / I / O</span></h3>
             <div class="hazard-grid">
                 <div class="hazard-box">
-                    <strong style="color: var(--text-main);">Gaps</strong>
+                    <strong style="color: var(--text-main);">Gaps</strong><span class="kbd-hint">G</span>
                     <span>(10 pts each)</span>
                     <div class="btn-group">
                         <button onclick="updateCount('gaps', -1)">-</button>
@@ -487,7 +590,7 @@
                     </div>
                 </div>
                 <div class="hazard-box">
-                    <strong style="color: var(--text-main);">Intersections</strong>
+                    <strong style="color: var(--text-main);">Intersections</strong><span class="kbd-hint">I</span>
                     <span>(10 pts each)</span>
                     <div class="btn-group">
                         <button onclick="updateCount('intersections', -1)">-</button>
@@ -496,7 +599,7 @@
                     </div>
                 </div>
                 <div class="hazard-box">
-                    <strong style="color: var(--text-main);">Obstacles</strong>
+                    <strong style="color: var(--text-main);">Obstacles</strong><span class="kbd-hint">O</span>
                     <span>(20 pts each)</span>
                     <div class="btn-group">
                         <button onclick="updateCount('obstacles', -1)">-</button>
@@ -518,7 +621,7 @@
 
             <div class="hazard-grid" style="grid-template-columns: 1fr 1fr; margin-bottom: 15px;">
                 <div class="hazard-box">
-                    <strong style="color: var(--text-main);">Lack of Progress (LoP)</strong>
+                    <strong style="color: var(--text-main);">Lack of Progress (LoP)</strong><span class="kbd-hint">L</span>
                     <span>(−5 pts each, off the exit bonus)</span>
                     <div class="btn-group">
                         <button onclick="updateLop(-1)">-</button>
@@ -628,6 +731,9 @@
         </div>
 
     </div>
+
+    <!-- Non-blocking notification toast -->
+    <div class="toast" id="toast"></div>
 
     <script>
         // ====================================================================
@@ -756,7 +862,7 @@
             const name = input.value.trim();
             if (!name) return;
             if (teams.includes(name)) {
-                alert('That team already exists.');
+                showToast('That team already exists.', 'error');
                 return;
             }
             teams.push(name);
@@ -853,7 +959,7 @@
         function saveRun() {
             const team = document.getElementById('teamSelect').value;
             if (!team) {
-                alert('⚠️ Please add and select a team before saving a run.');
+                showToast('⚠️ Add and select a team before saving a run.', 'error');
                 return;
             }
 
@@ -884,7 +990,7 @@
             renderTable();
 
             if (!cloudEnabled) {
-                alert('✅ Run saved locally in this browser.\n\n(Tip: set up Google Sheets via the README to sync across devices.)');
+                showToast('✅ Run saved locally for ' + team + '.', 'success');
                 return;
             }
 
@@ -909,12 +1015,12 @@
                 .then(() => {
                     btn.innerText = originalText;
                     btn.disabled = false;
-                    alert('🚀 Success! Run synced to Google Sheets.');
+                    showToast('🚀 Run synced to Google Sheets.', 'success');
                 })
                 .catch(error => {
                     btn.innerText = originalText;
                     btn.disabled = false;
-                    alert('⚠️ Saved locally, but cloud sync failed: ' + error.message);
+                    showToast('⚠️ Saved locally, but cloud sync failed.', 'error');
                 });
         }
 
@@ -1079,6 +1185,16 @@
             }
         }
 
+        // Non-blocking toast notification. type: 'success' | 'error' | 'info'
+        let toastTimer = null;
+        function showToast(message, type) {
+            const el = document.getElementById('toast');
+            el.textContent = message;
+            el.className = 'toast show ' + (type || 'success');
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => { el.className = 'toast ' + (type || 'success'); }, 2800);
+        }
+
         // Local date as YYYY-MM-DD (avoids UTC off-by-one from toISOString()).
         function todayISO() {
             const d = new Date();
@@ -1101,10 +1217,18 @@
         let timerInterval = null;
 
         function updateTimerDisplay() {
+            const el = document.getElementById('timerDisplay');
             let minutes = Math.floor(timeLeft / 60);
             let seconds = timeLeft % 60;
-            document.getElementById('timerDisplay').innerText =
-                (minutes < 10 ? '0' : '') + minutes + ':' + (seconds < 10 ? '0' : '') + seconds;
+            el.innerText = (minutes < 10 ? '0' : '') + minutes + ':' + (seconds < 10 ? '0' : '') + seconds;
+
+            // Color-warn as time runs out: yellow under 1:00, red (pulsing) under 0:30.
+            el.classList.remove('warning', 'danger');
+            if (timeLeft <= 30 && timeLeft > 0) {
+                el.classList.add('danger');
+            } else if (timeLeft <= 60 && timeLeft > 0) {
+                el.classList.add('warning');
+            }
         }
 
         function startTimer() {
@@ -1112,7 +1236,10 @@
                 timerInterval = setInterval(() => {
                     timeLeft--;
                     updateTimerDisplay();
-                    if (timeLeft <= 0) stopTimer();
+                    if (timeLeft <= 0) {
+                        stopTimer();
+                        showToast("⏱️ Time's up! 5-minute game over.", 'info');
+                    }
                 }, 1000);
             }
         }
@@ -1126,6 +1253,47 @@
             stopTimer();
             timeLeft = 300;
             updateTimerDisplay();
+        }
+
+        // Toggle the timer with the Space bar.
+        function toggleTimer() {
+            if (timerInterval) {
+                stopTimer();
+            } else {
+                startTimer();
+            }
+        }
+
+        // Only act on shortcuts when not typing in a field.
+        function isTypingTarget(el) {
+            if (!el) return false;
+            const tag = el.tagName;
+            return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el.isContentEditable;
+        }
+
+        document.addEventListener('keydown', function (e) {
+            if (isTypingTarget(e.target) || e.ctrlKey || e.metaKey || e.altKey) return;
+
+            switch (e.key.toLowerCase()) {
+                case 'g': updateCount('gaps', 1); flashBox('gaps'); break;
+                case 'i': updateCount('intersections', 1); flashBox('intersections'); break;
+                case 'o': updateCount('obstacles', 1); flashBox('obstacles'); break;
+                case 'l': updateLop(1); flashBox('lop'); break;
+                case ' ':
+                    e.preventDefault(); // stop page scroll
+                    toggleTimer();
+                    break;
+                default: return;
+            }
+        });
+
+        // Brief highlight so a keyboard press gives visible feedback.
+        function flashBox(id) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.style.transition = 'color 0.1s';
+            el.style.color = 'var(--success)';
+            setTimeout(() => { el.style.color = ''; }, 200);
         }
 
         // Recalculate total when the goal-reached box is toggled.

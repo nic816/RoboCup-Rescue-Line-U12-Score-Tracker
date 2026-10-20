@@ -214,6 +214,22 @@ const scriptURL = 'https://script.google.com/macros/s/XXXXXXXXXXXXXXXXXXXX/exec'
 
 ---
 
+# ⌨️ Keyboard Shortcuts (for fast live scoring)
+
+While a run is in progress you can score without aiming for buttons:
+
+| Key | Action |
+|---|---|
+| `G` | +1 Gap |
+| `I` | +1 Intersection |
+| `O` | +1 Obstacle |
+| `L` | +1 Lack of Progress |
+| `Space` | Start / stop the timer |
+
+Shortcuts are ignored while you're typing in a text field. The timer also turns **yellow under 1:00** and **red (pulsing) under 0:30** so you get a warning without looking away from the robot.
+
+---
+
 # 🖥️ Usage
 
 1. **Add your teams** once, using the "Add a New Team" box. They stay in the dropdown.
