@@ -34,7 +34,6 @@ A lightweight scoring dashboard for **RCAP Rescue Line Entry, U12** training run
 | Checkpoint tile (beyond 3rd attempt) | tiles × 1 |
 | Exit bonus (robot reaches goal and stops 5s) | max(0, 60 − 5 × total LoP) |
 
-> **Exit Bonus (rule 5.6.5):** awarded only when the robot reaches the goal tile and stays stopped for 5+ seconds. Each Lack of Progress (LoP) reduces it by 5, and it never goes below 0. There is **no** separate "red line" bonus — the red tape simply marks the goal tile.
 
 ---
 
