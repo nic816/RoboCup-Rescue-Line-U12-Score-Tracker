@@ -10,6 +10,7 @@ A lightweight scoring dashboard for **RCAP Rescue Line Entry, U12** training run
 
 - **Multi-Team Tracking** — Manage any number of teams right in the UI. Pick the active team from a dropdown before saving each run. No team names are hardcoded, so any trainer can use it.
 - **Team Progress View** — Filter the log by team and see runs logged, best score, average, and the trend between the two most recent runs at a glance.
+- **Competition Ranking** — Ranks teams by the mean of normalized field scores (rule 6.1), so you can see standings across rounds the way a real competition would.
 - **Live Scoring Dashboard** — 5-minute countdown timer.
 - **Hazard Counters** — Gaps (10 pts), Intersections (10 pts), Obstacles (20 pts).
 - **Checkpoint Segments** — Dynamic list with tile counts and attempt multipliers.
@@ -222,6 +223,17 @@ const scriptURL = 'https://script.google.com/macros/s/XXXXXXXXXXXXXXXXXXXX/exec'
 6. Increment the **Lack of Progress** counter each time a LoP occurs, and toggle **"Reached goal & stopped 5s"** if the robot finishes — the exit bonus is computed automatically.
 7. **Save the run.** It's stored against the selected team.
 8. In **Team Progress**, filter by a team to see its runs, best score, average, and trend.
+9. Check **Competition Ranking** for the overall standings across rounds (see below).
+
+### How Competition Ranking works (rule 6.1)
+
+Use a consistent **Round / Run** label (e.g. "Run 1", "Run 2") when logging, since ranking groups runs by that label. For each round:
+
+1. Each team's **best run** in that round is taken.
+2. That score is normalized against the top score in the round: `normalized = field score / best field score`.
+3. A team's ranking metric is the **mean of its normalized scores** across the rounds it took part in.
+
+Teams are ordered by that mean (highest first); ties are broken by best single run. Runs with no round label are grouped under "Unlabelled".
 
 ---
 

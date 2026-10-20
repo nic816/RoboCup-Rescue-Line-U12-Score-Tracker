@@ -592,6 +592,30 @@
             </div>
         </div>
 
+        <div class="card">
+            <h3>5. Competition Ranking</h3>
+            <p style="color: var(--text-muted); font-size: 13px; margin-top: 0;">
+                Teams ranked by the <strong>mean of normalized field scores</strong> (rule 6.1). Each run is
+                normalized against the best score in its round, then averaged per team. Only the
+                <strong>best run per team within each round</strong> is counted.
+            </p>
+            <div style="overflow-x: auto;">
+                <table id="rankTable">
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Team</th>
+                            <th>Rounds</th>
+                            <th>Best Run</th>
+                            <th>Mean Normalized</th>
+                        </tr>
+                    </thead>
+                    <tbody id="rankBody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
         <div class="score-board">
             TOTAL SCORE: <span id="totalScore">0</span>
             <div class="score-breakdown">
@@ -929,6 +953,77 @@
             });
 
             updateStats(filtered);
+            renderRanking();
+        }
+
+        // ====================================================================
+        //  COMPETITION RANKING  (rule 6.1 — normalized field scores)
+        //  - Runs are grouped by their Round label.
+        //  - Within each round we take each team's BEST run.
+        //  - Each team's round score is normalized by the best score in that round.
+        //  - A team's ranking metric is the mean of its normalized scores across
+        //    the rounds it participated in.
+        // ====================================================================
+        function renderRanking() {
+            const rankBody = document.getElementById('rankBody');
+            rankBody.innerHTML = '';
+
+            if (!runLogs.length) {
+                rankBody.innerHTML = '<tr><td colspan="5" style="color: var(--text-muted);">No runs logged yet.</td></tr>';
+                return;
+            }
+
+            // Group: round -> team -> best total
+            const rounds = {};
+            runLogs.forEach(log => {
+                const round = (log.round && String(log.round).trim()) || 'Unlabelled';
+                const team = log.team || 'Unnamed Team';
+                const total = Number(log.total) || 0;
+                rounds[round] = rounds[round] || {};
+                if (rounds[round][team] == null || total > rounds[round][team]) {
+                    rounds[round][team] = total;
+                }
+            });
+
+            // Per team: collect normalized scores across rounds
+            const teamStats = {}; // team -> { normSum, roundCount, best }
+            Object.keys(rounds).forEach(round => {
+                const teamScores = rounds[round];
+                const best = Math.max(...Object.values(teamScores));
+                Object.keys(teamScores).forEach(team => {
+                    const score = teamScores[team];
+                    const normalized = best > 0 ? score / best : 0;
+                    teamStats[team] = teamStats[team] || { normSum: 0, roundCount: 0, best: 0 };
+                    teamStats[team].normSum += normalized;
+                    teamStats[team].roundCount += 1;
+                    if (score > teamStats[team].best) teamStats[team].best = score;
+                });
+            });
+
+            // Build ranking rows
+            const ranking = Object.keys(teamStats).map(team => {
+                const s = teamStats[team];
+                return {
+                    team,
+                    rounds: s.roundCount,
+                    best: s.best,
+                    mean: s.roundCount ? s.normSum / s.roundCount : 0
+                };
+            });
+
+            // Sort by mean normalized desc, then best run desc as tiebreaker
+            ranking.sort((a, b) => (b.mean - a.mean) || (b.best - a.best));
+
+            ranking.forEach((r, i) => {
+                const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1);
+                rankBody.innerHTML += `<tr>
+                    <td style="font-weight:bold;">${medal}</td>
+                    <td style="font-weight:bold;">${escapeHtml(r.team)}</td>
+                    <td>${r.rounds}</td>
+                    <td>${r.best}</td>
+                    <td style="font-weight:bold; color: var(--primary);">${r.mean.toFixed(3)}</td>
+                </tr>`;
+            });
         }
 
         function updateStats(logs) {
