@@ -1,6 +1,6 @@
 # RCAP Rescue Line Entry, U12 Score Tracker
 
-A lightweight scoring dashboard for **RCAP Rescue Line Entry, U12** training runs. Coaches can log hazards, checkpoint tiles, and missions during live sessions — all saved to a private Google Sheet in real time.
+A lightweight scoring dashboard for **RCAP Rescue Line Entry, U12** training runs. Coaches can log hazards, checkpoint tiles, and missions during live sessions — organised **per team** so you can track each team's progress over time. Everything is saved to a private Google Sheet in real time (or locally in the browser if you prefer zero setup).
 
 ![Dashboard Screenshot](screenshot.png)
 
@@ -8,12 +8,14 @@ A lightweight scoring dashboard for **RCAP Rescue Line Entry, U12** training run
 
 # ✨ Features
 
-- **Live Scoring Dashboard** — 5-minute countdown timer with color warnings.
+- **Multi-Team Tracking** — Manage any number of teams right in the UI. Pick the active team from a dropdown before saving each run. No team names are hardcoded, so any trainer can use it.
+- **Team Progress View** — Filter the log by team and see runs logged, best score, average, and the trend between the two most recent runs at a glance.
+- **Live Scoring Dashboard** — 5-minute countdown timer.
 - **Hazard Counters** — Gaps (10 pts), Intersections (10 pts), Obstacles (20 pts).
 - **Checkpoint Segments** — Dynamic list with tile counts and attempt multipliers.
 - **U12 Mission Task** — Red line stop detection toggle (+25 pts).
-- **Cloud Saving** — Runs are saved directly to your own Google Sheet and persist on refresh.
-- **No Server Required** — Runs entirely in the browser using HTML/JS and Google Apps Script.
+- **Works Offline** — Runs entirely in the browser. Cloud saving to Google Sheets is optional.
+- **No Server Required** — Pure HTML/JS plus optional Google Apps Script.
 
 ---
 
@@ -26,14 +28,18 @@ A lightweight scoring dashboard for **RCAP Rescue Line Entry, U12** training run
 | Obstacle avoided | +20 per obstacle |
 | Checkpoint tile (1st attempt) | tiles × 5 |
 | Checkpoint tile (2nd attempt) | tiles × 3 |
-| Checkpoint tile (3rd attempt) | tiles × 1 |
+| Checkpoint tile (3rd attempt) | tiles × 2 |
+| Checkpoint tile (4th+ attempt) | tiles × 1 |
 | Red line detected successfully | +25 |
 
 ---
 
 # 🚀 Getting Started
 
-This is a single-file web application. To use the cloud-saving feature, you must link it to your own Google Sheet.
+This is a single-file web application.
+
+- **Local-only mode (no setup):** Just open `index.html` in a browser. Teams and runs are saved in that browser's local storage. Great for a single laptop at the training table.
+- **Cloud mode (recommended for multiple devices):** Link it to your own Google Sheet so data is shared and backed up. See below.
 
 ---
 
@@ -41,200 +47,204 @@ This is a single-file web application. To use the cloud-saving feature, you must
 
 1. Download the `index.html` file from this repository.
 2. Open the file in any web browser to use the tracker locally.
-3. To enable permanent cloud saving, continue to Step 2.
+3. To enable permanent cloud saving across devices, continue to Step 2.
 
 ---
 
 ## Step 2: Set Up Your Google Sheet Database
 
+The database now uses **two tabs**: one for runs and one for your team list.
+
 ### 1. Create a New Google Sheet
 
-Open:
+Open: https://sheets.new/
 
-https://sheets.new/
+### 2. Create the `Runs` tab
 
----
+Rename the first tab to **`Runs`** and add these headers in the **first row** (exactly):
 
-### 2. Add the Following Headers
+| Timestamp | Team | Round | Gaps | Intersections | Obstacles | Hazards | Tiles | RedLine | Total |
+|---|---|---|---|---|---|---|---|---|---|
 
-In the **first row**, create these headers exactly:
+> **Why the extra columns?** Storing the hazard breakdown (gaps / intersections / obstacles) per run — not just the total — lets you spot exactly where a team is losing points, and makes it easy to build pivot tables or charts per team.
 
-| Timestamp | Team | Hazards | Tiles | RedLine | Total |
-|---|---|---|---|---|---|
+### 3. Create the `Teams` tab
 
----
+Add a **second tab** named **`Teams`** with a single header in the first row:
 
-### 3. Open Google Apps Script
+| Team |
+|---|
 
-Go to:
+This tab holds your managed team list so it syncs across devices.
 
-**Extensions → Apps Script**
+### 4. Open Google Apps Script
 
-Delete any existing code and paste the following script:
+Go to **Extensions → Apps Script**, delete any existing code, and paste the following:
 
 ```javascript
-const SHEET_NAME = 'Sheet1'; // Change this if you rename your sheet tab
+const RUNS_SHEET = 'Runs';
+const TEAMS_SHEET = 'Teams';
 
-// READ DATA (Loads previous runs on refresh)
+function getSheet(name) {
+  return SpreadsheetApp.getActiveSpreadsheet().getSheetByName(name);
+}
+
+// READ: returns { runs: [...], teams: [...] }
 function doGet(e) {
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
-  const data = sheet.getDataRange().getValues();
-  const headers = data[0];
-  const rows = data.slice(1);
+  const runsSheet = getSheet(RUNS_SHEET);
+  const teamsSheet = getSheet(TEAMS_SHEET);
 
-  const formattedData = rows.map(row => {
-    let obj = {};
-    headers.forEach((header, i) => {
-      obj[header] = row[i];
-    });
+  // Runs
+  const data = runsSheet.getDataRange().getValues();
+  const headers = data[0] || [];
+  const runs = data.slice(1).map(row => {
+    const obj = {};
+    headers.forEach((h, i) => { obj[h] = row[i]; });
     return obj;
   });
 
-  return ContentService.createTextOutput(JSON.stringify(formattedData))
+  // Teams (first column, skip header)
+  let teams = [];
+  if (teamsSheet) {
+    teams = teamsSheet.getRange(2, 1, Math.max(teamsSheet.getLastRow() - 1, 0), 1)
+      .getValues()
+      .map(r => r[0])
+      .filter(String);
+  }
+
+  return ContentService
+    .createTextOutput(JSON.stringify({ runs: runs, teams: teams }))
     .setMimeType(ContentService.MimeType.JSON);
 }
 
-// WRITE OR DELETE DATA
+// WRITE / DELETE
 function doPost(e) {
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
+  const action = e.parameter.action;
+  const runsSheet = getSheet(RUNS_SHEET);
+  const teamsSheet = getSheet(TEAMS_SHEET);
 
-  // Handle "Clear Logs" request
-  if (e.parameter.action === 'clear') {
-    if (sheet.getLastRow() > 1) {
-      sheet.deleteRows(2, sheet.getLastRow() - 1);
+  // Clear all runs
+  if (action === 'clear') {
+    if (runsSheet.getLastRow() > 1) {
+      runsSheet.deleteRows(2, runsSheet.getLastRow() - 1);
     }
-
-    return ContentService.createTextOutput(
-      JSON.stringify({ result: 'cleared' })
-    ).setMimeType(ContentService.MimeType.JSON);
+    return json({ result: 'cleared' });
   }
 
-  // Handle "Save Run" request
-  const rowData = [
+  // Add a team
+  if (action === 'addTeam') {
+    const name = e.parameter.Team;
+    if (name && teamsSheet) {
+      const existing = teamsSheet.getRange(2, 1, Math.max(teamsSheet.getLastRow() - 1, 0), 1)
+        .getValues().map(r => r[0]);
+      if (existing.indexOf(name) === -1) teamsSheet.appendRow([name]);
+    }
+    return json({ result: 'teamAdded' });
+  }
+
+  // Remove a team
+  if (action === 'removeTeam') {
+    const name = e.parameter.Team;
+    if (name && teamsSheet) {
+      const values = teamsSheet.getRange(2, 1, Math.max(teamsSheet.getLastRow() - 1, 0), 1).getValues();
+      for (let i = values.length - 1; i >= 0; i--) {
+        if (values[i][0] === name) teamsSheet.deleteRow(i + 2);
+      }
+    }
+    return json({ result: 'teamRemoved' });
+  }
+
+  // Default: save a run
+  runsSheet.appendRow([
     new Date().toLocaleString(),
     e.parameter.Team || '',
+    e.parameter.Round || '',
+    e.parameter.Gaps || 0,
+    e.parameter.Intersections || 0,
+    e.parameter.Obstacles || 0,
     e.parameter.Hazards || 0,
     e.parameter.Tiles || 0,
     e.parameter.RedLine || '',
     e.parameter.Total || 0
-  ];
+  ]);
 
-  sheet.appendRow(rowData);
+  return json({ result: 'success' });
+}
 
-  return ContentService.createTextOutput(
-    JSON.stringify({ result: 'success' })
-  ).setMimeType(ContentService.MimeType.JSON);
+function json(obj) {
+  return ContentService
+    .createTextOutput(JSON.stringify(obj))
+    .setMimeType(ContentService.MimeType.JSON);
 }
 ```
 
----
-
-### 4. Deploy the Script as a Web App
+### 5. Deploy the Script as a Web App
 
 1. Click **Deploy → New Deployment**
-2. Select the **gear icon**
-3. Choose **Web App**
-4. Under **Execute as**, select:
-
-```text
-Me
-```
-
-5. Under **Who has access**, select:
-
-```text
-Anyone
-```
-
-6. Click **Deploy**
-7. Authorize permissions if prompted
-8. Copy the generated **Web App URL**
+2. Select the **gear icon** → **Web App**
+3. Under **Execute as**, select `Me`
+4. Under **Who has access**, select `Anyone`
+5. Click **Deploy**, authorize if prompted, and copy the **Web App URL**
 
 ---
 
 ## Step 3: Connect the Tracker to Your Google Sheet
 
-1. Open `index.html` in a text editor such as:
-   - VS Code
-   - Notepad++
-   - Sublime Text
-   - Notepad
-
-2. Find the following configuration variable:
+1. Open `index.html` in a text editor (VS Code, Notepad++, Sublime, Notepad).
+2. Find this line near the top of the `<script>` section:
 
 ```javascript
 const scriptURL = 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE';
 ```
 
-3. Replace the placeholder with your copied Google Apps Script URL:
+3. Replace the placeholder with your copied URL:
 
 ```javascript
 const scriptURL = 'https://script.google.com/macros/s/XXXXXXXXXXXXXXXXXXXX/exec';
 ```
 
-4. Save the file.
+4. Save the file and open it in your browser. You're now in cloud mode.
 
-5. Double-click `index.html` to open the tracker in your browser.
+> If you leave the placeholder as-is, the tracker still works fully — it just saves to the local browser instead of the cloud.
 
 ---
 
 # 🖥️ Usage
 
-1. Start the timer when a run begins.
-2. Record hazards as they occur:
-   - Gaps
-   - Intersections
-   - Obstacles
-3. Add checkpoint segments and tile counts.
-4. Select the correct attempt multiplier.
-5. Toggle the Red Line mission if completed successfully.
-6. Save the run to store it in Google Sheets.
-7. Refresh the page anytime to reload saved runs.
+1. **Add your teams** once, using the "Add a New Team" box. They stay in the dropdown.
+2. **Select the active team** and enter the session name / round.
+3. Start the timer when a run begins.
+4. Record hazards (gaps, intersections, obstacles) as they occur.
+5. Add checkpoint segments and tile counts, and pick the attempt multiplier.
+6. Toggle the Red Line mission if completed successfully.
+7. **Save the run.** It's stored against the selected team.
+8. In **Team Progress**, filter by a team to see its runs, best score, average, and trend.
 
 ---
 
 # ⚙️ Technologies Used
 
-- HTML5
-- CSS3
-- JavaScript (Vanilla)
-- Google Apps Script
-- Google Sheets API
+- HTML5, CSS3, JavaScript (Vanilla)
+- Google Apps Script + Google Sheets (optional cloud backend)
 
 ---
 
 # 🛠️ Troubleshooting
 
-## Runs Are Not Saving
+## Runs are not saving to the cloud
+- Deployment access must be **Anyone**.
+- Make sure you copied the `/exec` URL.
+- The `Runs` and `Teams` tab names and headers must match exactly.
+- Runs are always saved locally first, so nothing is lost even if sync fails.
 
-Make sure:
+## CORS error in the browser console
+- Usually an incorrect URL, non-public deployment, or an old deployment version. Redeploy and update the URL.
 
-- The Apps Script deployment is set to:
-  - **Who has access → Anyone**
-- You copied the correct `/exec` URL
-- The sheet headers match exactly
+## Saved runs do not reload
+- Confirm `doGet()` exists and the deployment was updated after any code change, then refresh.
 
----
-
-## CORS Error in Browser Console
-
-Usually caused by:
-
-- Incorrect Web App URL
-- Deployment permissions not public
-- Old deployment version
-
-Try redeploying the script and updating the URL.
-
----
-
-## Saved Runs Do Not Reload
-
-Ensure:
-
-- The `doGet()` function exists
-- Your deployment is updated after code changes
-- You refreshed the browser after saving
+## Upgrading from the old single-sheet version
+- The dashboard still reads the old flat format, so existing data will load. To get the new per-team columns, add the extra headers to your `Runs` tab (or start a fresh sheet) and create the `Teams` tab.
 
 ---
 
@@ -243,4 +253,3 @@ Ensure:
 This project is licensed under the MIT License.
 
 You are free to use, modify, and distribute this software for educational purposes, robotics teams, and competitions.
-

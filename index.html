@@ -13,6 +13,7 @@
             --primary-hover: #0284c7;
             --success: #10b981;
             --danger: #ef4444;
+            --warning: #f59e0b;
             --text-main: #f8fafc;
             --text-muted: #94a3b8;
             --border-color: #334155;
@@ -41,6 +42,8 @@
             justify-content: space-between;
             align-items: center;
             border-bottom: 2px solid var(--primary);
+            flex-wrap: wrap;
+            gap: 10px;
         }
 
         .header-panel h2 {
@@ -83,7 +86,7 @@
         }
 
         .btn-reset {
-            background: #f59e0b;
+            background: var(--warning);
             color: black;
         }
 
@@ -123,7 +126,8 @@
             color: var(--text-muted);
         }
 
-        .form-group input {
+        .form-group input,
+        .form-group select {
             width: 100%;
             padding: 10px;
             border: 1px solid var(--border-color);
@@ -133,9 +137,50 @@
             color: var(--text-main);
         }
 
-        .form-group input:focus {
+        .form-group input:focus,
+        .form-group select:focus {
             outline: none;
             border-color: var(--primary);
+        }
+
+        /* Team manager */
+        .team-manager {
+            display: flex;
+            gap: 10px;
+            margin-top: 12px;
+            align-items: flex-end;
+            flex-wrap: wrap;
+        }
+
+        .team-manager .form-group {
+            flex: 1;
+            min-width: 160px;
+        }
+
+        .btn-mini {
+            padding: 10px 14px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            background: var(--primary);
+            color: #000;
+            transition: 0.2s;
+            white-space: nowrap;
+        }
+
+        .btn-mini:hover {
+            background: var(--primary-hover);
+            color: white;
+        }
+
+        .btn-mini.danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-mini.danger:hover {
+            background: #b91c1c;
         }
 
         /* Hazards */
@@ -294,6 +339,61 @@
             background-color: rgba(255, 255, 255, 0.02);
         }
 
+        /* Progress summary */
+        .filter-bar {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+        }
+
+        .filter-bar .form-group {
+            flex: 1;
+            min-width: 180px;
+        }
+
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .stat-box {
+            background: rgba(0, 0, 0, 0.25);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .stat-box .label {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-box .value {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--primary);
+            margin-top: 4px;
+        }
+
+        .trend-up {
+            color: var(--success);
+        }
+
+        .trend-down {
+            color: var(--danger);
+        }
+
+        .trend-flat {
+            color: var(--text-muted);
+        }
+
         /* Score Board */
         .score-board {
             background: #020617;
@@ -315,6 +415,12 @@
             font-weight: normal;
             margin-top: 5px;
             color: var(--text-muted);
+        }
+
+        @media (max-width: 600px) {
+            .stat-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
         }
     </style>
 </head>
@@ -338,13 +444,29 @@
         <div class="card" style="border-radius: 0 0 8px 8px; margin-top: 0;">
             <div class="info-grid">
                 <div class="form-group">
-                    <label>Competition Name</label>
+                    <label>Competition / Session Name</label>
                     <input type="text" id="compName" placeholder="e.g., Track A Practice">
                 </div>
                 <div class="form-group">
-                    <label>Team Name & Round</label>
-                    <input type="text" id="teamName" placeholder="e.g., Team Alpha - Run 1">
+                    <label>Round / Run</label>
+                    <input type="text" id="roundName" placeholder="e.g., Run 1">
                 </div>
+            </div>
+
+            <!-- Team management: add / select / remove teams. No team names are hardcoded. -->
+            <div class="team-manager">
+                <div class="form-group">
+                    <label>Active Team</label>
+                    <select id="teamSelect">
+                        <option value="">— No teams yet —</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Add a New Team</label>
+                    <input type="text" id="newTeamInput" placeholder="New team name" onkeydown="if(event.key==='Enter')addTeam()">
+                </div>
+                <button class="btn-mini" onclick="addTeam()">+ Add Team</button>
+                <button class="btn-mini danger" onclick="removeTeam()">Remove Selected</button>
             </div>
         </div>
 
@@ -392,23 +514,53 @@
             <label
                 style="font-size: 16px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 10px; color: var(--text-main); background: rgba(0,0,0,0.2); padding: 15px; border-radius: 5px; border: 1px solid var(--border-color);">
                 <input type="checkbox" id="redLineCheck" style="width: 22px; height: 22px; cursor: pointer;">
-                Red Line Stop Detected successfully
+                Red Line Stop Detected successfully (+25 pts)
             </label>
 
             <div class="action-grid">
-                <button class="btn-save" onclick="saveRun()">💾 Save Run to Local Storage</button>
+                <button class="btn-save" onclick="saveRun()">💾 Save Run</button>
                 <button class="btn-clear" onclick="clearLogs()">🗑️ Clear All Logs</button>
             </div>
+        </div>
 
-            <h4
-                style="margin-top: 25px; border-bottom: 1px solid var(--border-color); padding-bottom: 5px; color: var(--primary);">
-                Saved Sessions (Persists on Refresh)</h4>
+        <div class="card">
+            <h3>4. Team Progress</h3>
+
+            <div class="filter-bar">
+                <div class="form-group">
+                    <label>Filter by Team</label>
+                    <select id="filterTeam" onchange="renderTable()">
+                        <option value="__all__">All Teams</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="stat-grid" id="statGrid">
+                <div class="stat-box">
+                    <div class="label">Runs Logged</div>
+                    <div class="value" id="statRuns">0</div>
+                </div>
+                <div class="stat-box">
+                    <div class="label">Best Score</div>
+                    <div class="value" id="statBest">0</div>
+                </div>
+                <div class="stat-box">
+                    <div class="label">Average</div>
+                    <div class="value" id="statAvg">0</div>
+                </div>
+                <div class="stat-box">
+                    <div class="label">Last vs Prev</div>
+                    <div class="value" id="statTrend">—</div>
+                </div>
+            </div>
+
             <div style="overflow-x: auto;">
                 <table id="logTable">
                     <thead>
                         <tr>
                             <th>Date & Time</th>
-                            <th>Team/Round</th>
+                            <th>Team</th>
+                            <th>Round</th>
                             <th>Hazards</th>
                             <th>Tiles</th>
                             <th>Red Line</th>
@@ -431,10 +583,22 @@
     </div>
 
     <script>
-        // --- SCORE LOGIC ---
+        // ====================================================================
+        //  CONFIG — paste your Google Apps Script Web App URL here.
+        //  Leave as-is to run in local-only mode (saves in this browser).
+        // ====================================================================
+        const scriptURL = 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE';
+        const cloudEnabled = scriptURL && scriptURL !== 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE';
+
+        // --- STATE ---
         let counts = { gaps: 0, intersections: 0, obstacles: 0 };
         let segmentCount = 0;
+        let runLogs = [];
+        let teams = [];
 
+        // ====================================================================
+        //  SCORE LOGIC
+        // ====================================================================
         function updateCount(type, change) {
             if (counts[type] + change >= 0) {
                 counts[type] += change;
@@ -482,128 +646,305 @@
                 tilePoints += (tiles * multiplier);
             });
 
+            let redLinePoints = document.getElementById('redLineCheck').checked ? 25 : 0;
+
             document.getElementById('hazardTotal').innerText = hazardPoints;
             document.getElementById('tileTotal').innerText = tilePoints;
-            document.getElementById('totalScore').innerText = hazardPoints + tilePoints;
+            document.getElementById('totalScore').innerText = hazardPoints + tilePoints + redLinePoints;
         }
 
-        // Initialize with one segment
-        addSegment();
+        // ====================================================================
+        //  TEAM MANAGEMENT  (persists locally; synced to cloud if configured)
+        // ====================================================================
+        function loadTeamsLocal() {
+            try {
+                teams = JSON.parse(localStorage.getItem('rcapU12Teams')) || [];
+            } catch (e) {
+                teams = [];
+            }
+        }
 
-        // --- LOCAL STORAGE LOGIC ---
-        let runLogs = [];
+        function saveTeamsLocal() {
+            localStorage.setItem('rcapU12Teams', JSON.stringify(teams));
+        }
 
-        // Load logs from browser memory when the page opens
+        function renderTeamDropdowns() {
+            const teamSelect = document.getElementById('teamSelect');
+            const filterTeam = document.getElementById('filterTeam');
+            const current = teamSelect.value;
+            const currentFilter = filterTeam.value;
+
+            teamSelect.innerHTML = teams.length
+                ? teams.map(t => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join('')
+                : '<option value="">— No teams yet —</option>';
+
+            filterTeam.innerHTML = '<option value="__all__">All Teams</option>' +
+                teams.map(t => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join('');
+
+            if (teams.includes(current)) teamSelect.value = current;
+            if (currentFilter === '__all__' || teams.includes(currentFilter)) filterTeam.value = currentFilter;
+        }
+
+        function addTeam() {
+            const input = document.getElementById('newTeamInput');
+            const name = input.value.trim();
+            if (!name) return;
+            if (teams.includes(name)) {
+                alert('That team already exists.');
+                return;
+            }
+            teams.push(name);
+            teams.sort((a, b) => a.localeCompare(b));
+            saveTeamsLocal();
+            renderTeamDropdowns();
+            document.getElementById('teamSelect').value = name;
+            input.value = '';
+
+            if (cloudEnabled) {
+                const fd = new FormData();
+                fd.append('action', 'addTeam');
+                fd.append('Team', name);
+                fetch(scriptURL, { method: 'POST', body: fd }).catch(() => {});
+            }
+        }
+
+        function removeTeam() {
+            const name = document.getElementById('teamSelect').value;
+            if (!name) return;
+            if (!confirm(`Remove team "${name}" from the list? (Saved runs are kept.)`)) return;
+            teams = teams.filter(t => t !== name);
+            saveTeamsLocal();
+            renderTeamDropdowns();
+
+            if (cloudEnabled) {
+                const fd = new FormData();
+                fd.append('action', 'removeTeam');
+                fd.append('Team', name);
+                fetch(scriptURL, { method: 'POST', body: fd }).catch(() => {});
+            }
+        }
+
+        // ====================================================================
+        //  SAVE / LOAD RUNS
+        // ====================================================================
         window.onload = function () {
-            // Fetch from Google instead of just LocalStorage
-            fetch(scriptURL)
-                .then(res => res.json())
-                .then(data => {
-                    if (data && data.length > 0) {
-                        // Map Google data back to our table format
-                        runLogs = data.map(row => ({
-                            dateTime: row.Timestamp,
-                            team: row.Team,
-                            hazards: row.Hazards,
-                            tiles: row.Tiles,
-                            redLine: row.RedLine,
-                            total: row.Total
-                        }));
+            loadTeamsLocal();
+            loadRunsLocal();
+            renderTeamDropdowns();
+            renderTable();
+            addSegment(); // start with one segment
+
+            if (cloudEnabled) {
+                fetch(scriptURL)
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data && Array.isArray(data.runs)) {
+                            runLogs = data.runs.map(mapCloudRow);
+                            localStorage.setItem('rcapU12Logs', JSON.stringify(runLogs));
+                        } else if (Array.isArray(data)) {
+                            // Backwards-compatible with the old flat format
+                            runLogs = data.map(mapCloudRow);
+                            localStorage.setItem('rcapU12Logs', JSON.stringify(runLogs));
+                        }
+                        if (data && Array.isArray(data.teams) && data.teams.length) {
+                            teams = Array.from(new Set(data.teams.map(String)));
+                            teams.sort((a, b) => a.localeCompare(b));
+                            saveTeamsLocal();
+                        }
+                        renderTeamDropdowns();
                         renderTable();
-                    }
-                });
+                    })
+                    .catch(() => { /* stay in local mode on error */ });
+            }
         };
 
-        // Add your Google Apps Script Web App URL here
-        const scriptURL = 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE';
+        function mapCloudRow(row) {
+            return {
+                dateTime: row.Timestamp || row.dateTime || '',
+                team: row.Team || row.team || 'Unnamed Team',
+                round: row.Round || row.round || '',
+                gaps: row.Gaps || 0,
+                intersections: row.Intersections || 0,
+                obstacles: row.Obstacles || 0,
+                hazards: row.Hazards || 0,
+                tiles: row.Tiles || row.TilePoints || 0,
+                redLine: row.RedLine || '',
+                total: row.Total || 0
+            };
+        }
+
+        function loadRunsLocal() {
+            try {
+                runLogs = JSON.parse(localStorage.getItem('rcapU12Logs')) || [];
+            } catch (e) {
+                runLogs = [];
+            }
+        }
 
         function saveRun() {
-
-            if (scriptURL === 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE' || scriptURL === '') {
-                alert("⚠️ Cloud saving is not set up! Please read the README to connect your own Google Sheet. Your run will only be saved locally.");
+            const team = document.getElementById('teamSelect').value;
+            if (!team) {
+                alert('⚠️ Please add and select a team before saving a run.');
+                return;
             }
 
             const btn = document.querySelector('.btn-save');
             const originalText = btn.innerText;
-            btn.innerText = "⏳ Syncing to Cloud...";
+
+            const round = document.getElementById('roundName').value || '';
+            const hazards = parseInt(document.getElementById('hazardTotal').innerText) || 0;
+            const tiles = parseInt(document.getElementById('tileTotal').innerText) || 0;
+            const total = parseInt(document.getElementById('totalScore').innerText) || 0;
+            const redLine = document.getElementById('redLineCheck').checked ? 'Pass' : 'Fail';
+
+            const now = new Date();
+            const dateTimeStr = now.toLocaleDateString() + ' ' +
+                now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            const entry = {
+                dateTime: dateTimeStr, team, round,
+                gaps: counts.gaps, intersections: counts.intersections, obstacles: counts.obstacles,
+                hazards, tiles, redLine, total
+            };
+
+            // Always save locally so nothing is ever lost.
+            runLogs.push(entry);
+            localStorage.setItem('rcapU12Logs', JSON.stringify(runLogs));
+            renderTable();
+
+            if (!cloudEnabled) {
+                alert('✅ Run saved locally in this browser.\n\n(Tip: set up Google Sheets via the README to sync across devices.)');
+                return;
+            }
+
+            btn.innerText = '⏳ Syncing...';
             btn.disabled = true;
 
-            let team = document.getElementById('teamName').value || "Unnamed Team";
-            let hazards = document.getElementById('hazardTotal').innerText;
-            let tiles = document.getElementById('tileTotal').innerText;
-            let total = document.getElementById('totalScore').innerText;
-            let redLine = document.getElementById('redLineCheck').checked ? "Pass" : "Fail";
-
-            // Prepare data for Google Sheets
-            let formData = new FormData();
+            const formData = new FormData();
+            formData.append('action', 'saveRun');
             formData.append('Team', team);
+            formData.append('Round', round);
+            formData.append('Gaps', counts.gaps);
+            formData.append('Intersections', counts.intersections);
+            formData.append('Obstacles', counts.obstacles);
             formData.append('Hazards', hazards);
             formData.append('Tiles', tiles);
             formData.append('RedLine', redLine);
             formData.append('Total', total);
 
-            // POST to Google Apps Script
             fetch(scriptURL, { method: 'POST', body: formData })
-                .then(response => {
+                .then(() => {
                     btn.innerText = originalText;
                     btn.disabled = false;
-
-                    // Add to local list for immediate display
-                    let now = new Date();
-                    let dateTimeStr = now.toLocaleDateString() + " " + now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-                    runLogs.push({ dateTime: dateTimeStr, team, hazards, tiles, redLine, total });
-                    localStorage.setItem('rcapU12Logs', JSON.stringify(runLogs));
-
-                    renderTable();
-                    alert("🚀 Success! Data synced to Google Sheets.");
+                    alert('🚀 Success! Run synced to Google Sheets.');
                 })
                 .catch(error => {
                     btn.innerText = originalText;
                     btn.disabled = false;
-                    alert('❌ Sync Error: ' + error.message);
+                    alert('⚠️ Saved locally, but cloud sync failed: ' + error.message);
                 });
         }
 
-        function renderTable() {
-            let tbody = document.getElementById('logBody');
-            tbody.innerHTML = ""; // Clear current table
-
-            // Render newest logs at the top
-            let reversedLogs = [...runLogs].reverse();
-
-            reversedLogs.forEach(log => {
-                let rowColor = log.redLine === "Pass" ? "color: var(--success);" : "color: var(--danger);";
-                let row = `<tr>
-                <td style="font-size: 12px; color: var(--text-muted);">${log.dateTime || "-"}</td>
-                <td style="font-weight:bold;">${log.team}</td>
-                <td>${log.hazards}</td>
-                <td>${log.tiles}</td>
-                <td style="font-weight:bold; ${rowColor}">${log.redLine}</td>
-                <td style="font-weight:bold; color: var(--success); font-size: 16px;">${log.total}</td>
-            </tr>`;
-                tbody.innerHTML += row;
-            });
-        }
-
         function clearLogs() {
-            if (confirm("Are you sure? This will wipe the Google Sheet AND local logs!")) {
-                // Change: Use URLSearchParams to ensure Google reads the 'action' parameter correctly
-                fetch(scriptURL + "?action=clear", { method: 'POST' })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.result === 'cleared') {
-                            runLogs = [];
-                            localStorage.removeItem('rcapU12Logs');
-                            renderTable();
-                            alert("Cloud and Local Logs Cleared!");
-                        }
-                    })
-                    .catch(error => alert('Error clearing cloud: ' + error.message));
+            if (!confirm('Are you sure? This wipes all saved runs (cloud and local).')) return;
+
+            runLogs = [];
+            localStorage.removeItem('rcapU12Logs');
+            renderTable();
+
+            if (cloudEnabled) {
+                fetch(scriptURL + '?action=clear', { method: 'POST' })
+                    .then(res => res.json())
+                    .then(() => alert('Cloud and local logs cleared!'))
+                    .catch(error => alert('Local logs cleared. Cloud clear failed: ' + error.message));
+            } else {
+                alert('Local logs cleared!');
             }
         }
 
-        // --- TIMER LOGIC ---
+        // ====================================================================
+        //  TABLE + PROGRESS SUMMARY
+        // ====================================================================
+        function renderTable() {
+            const filter = document.getElementById('filterTeam').value;
+            const tbody = document.getElementById('logBody');
+            tbody.innerHTML = '';
+
+            const filtered = (filter === '__all__')
+                ? runLogs
+                : runLogs.filter(l => l.team === filter);
+
+            [...filtered].reverse().forEach(log => {
+                const rowColor = log.redLine === 'Pass' ? 'color: var(--success);' : 'color: var(--danger);';
+                tbody.innerHTML += `<tr>
+                    <td style="font-size: 12px; color: var(--text-muted);">${escapeHtml(log.dateTime) || '-'}</td>
+                    <td style="font-weight:bold;">${escapeHtml(log.team)}</td>
+                    <td>${escapeHtml(log.round) || '-'}</td>
+                    <td>${log.hazards}</td>
+                    <td>${log.tiles}</td>
+                    <td style="font-weight:bold; ${rowColor}">${escapeHtml(log.redLine)}</td>
+                    <td style="font-weight:bold; color: var(--success); font-size: 16px;">${log.total}</td>
+                </tr>`;
+            });
+
+            updateStats(filtered);
+        }
+
+        function updateStats(logs) {
+            const runsEl = document.getElementById('statRuns');
+            const bestEl = document.getElementById('statBest');
+            const avgEl = document.getElementById('statAvg');
+            const trendEl = document.getElementById('statTrend');
+
+            if (!logs.length) {
+                runsEl.innerText = '0';
+                bestEl.innerText = '0';
+                avgEl.innerText = '0';
+                trendEl.innerText = '—';
+                trendEl.className = 'value trend-flat';
+                return;
+            }
+
+            const totals = logs.map(l => Number(l.total) || 0);
+            const best = Math.max(...totals);
+            const avg = Math.round(totals.reduce((a, b) => a + b, 0) / totals.length);
+
+            runsEl.innerText = logs.length;
+            bestEl.innerText = best;
+            avgEl.innerText = avg;
+
+            // Trend compares the two most recent runs (chronological order = array order)
+            if (totals.length >= 2) {
+                const last = totals[totals.length - 1];
+                const prev = totals[totals.length - 2];
+                const diff = last - prev;
+                if (diff > 0) {
+                    trendEl.innerText = '▲ +' + diff;
+                    trendEl.className = 'value trend-up';
+                } else if (diff < 0) {
+                    trendEl.innerText = '▼ ' + diff;
+                    trendEl.className = 'value trend-down';
+                } else {
+                    trendEl.innerText = '= 0';
+                    trendEl.className = 'value trend-flat';
+                }
+            } else {
+                trendEl.innerText = 'first run';
+                trendEl.className = 'value trend-flat';
+            }
+        }
+
+        function escapeHtml(str) {
+            return String(str == null ? '' : str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        // ====================================================================
+        //  TIMER
+        // ====================================================================
         let timeLeft = 300;
         let timerInterval = null;
 
@@ -611,7 +952,7 @@
             let minutes = Math.floor(timeLeft / 60);
             let seconds = timeLeft % 60;
             document.getElementById('timerDisplay').innerText =
-                (minutes < 10 ? "0" : "") + minutes + ":" + (seconds < 10 ? "0" : "") + seconds;
+                (minutes < 10 ? '0' : '') + minutes + ':' + (seconds < 10 ? '0' : '') + seconds;
         }
 
         function startTimer() {
@@ -634,6 +975,11 @@
             timeLeft = 300;
             updateTimerDisplay();
         }
+
+        // Recalculate total when the red line box is toggled.
+        document.addEventListener('DOMContentLoaded', function () {
+            document.getElementById('redLineCheck').addEventListener('change', calculateScore);
+        });
     </script>
 
 </body>
