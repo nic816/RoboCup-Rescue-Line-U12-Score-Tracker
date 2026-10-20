@@ -510,11 +510,29 @@
         </div>
 
         <div class="card">
-            <h3>3. U12 Tasks & Session Log</h3>
+            <h3>3. Exit Bonus & Session Log</h3>
+
+            <div class="hazard-grid" style="grid-template-columns: 1fr 1fr; margin-bottom: 15px;">
+                <div class="hazard-box">
+                    <strong style="color: var(--text-main);">Lack of Progress (LoP)</strong>
+                    <span>(−5 pts each, off the exit bonus)</span>
+                    <div class="btn-group">
+                        <button onclick="updateLop(-1)">-</button>
+                        <span id="lop">0</span>
+                        <button onclick="updateLop(1)">+</button>
+                    </div>
+                </div>
+                <div class="hazard-box">
+                    <strong style="color: var(--text-main);">Exit Bonus</strong>
+                    <span>max(0, 60 − 5 × LoP) — goal only</span>
+                    <div style="font-size: 26px; font-weight: bold; color: var(--success); margin-top: 8px;" id="exitBonus">0</div>
+                </div>
+            </div>
+
             <label
                 style="font-size: 16px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 10px; color: var(--text-main); background: rgba(0,0,0,0.2); padding: 15px; border-radius: 5px; border: 1px solid var(--border-color);">
-                <input type="checkbox" id="redLineCheck" style="width: 22px; height: 22px; cursor: pointer;">
-                Red Line Stop Detected successfully (+25 pts)
+                <input type="checkbox" id="goalReachedCheck" style="width: 22px; height: 22px; cursor: pointer;">
+                Reached goal tile & stopped for 5+ seconds (awards Exit Bonus)
             </label>
 
             <div class="action-grid">
@@ -563,7 +581,8 @@
                             <th>Round</th>
                             <th>Hazards</th>
                             <th>Tiles</th>
-                            <th>Red Line</th>
+                            <th>LoP</th>
+                            <th>Exit Bonus</th>
                             <th>Total</th>
                         </tr>
                     </thead>
@@ -576,7 +595,7 @@
         <div class="score-board">
             TOTAL SCORE: <span id="totalScore">0</span>
             <div class="score-breakdown">
-                Hazards: <span id="hazardTotal">0</span> | Tiles: <span id="tileTotal">0</span>
+                Hazards: <span id="hazardTotal">0</span> | Tiles: <span id="tileTotal">0</span> | Exit Bonus: <span id="exitBonusTotal">0</span>
             </div>
         </div>
 
@@ -592,6 +611,7 @@
 
         // --- STATE ---
         let counts = { gaps: 0, intersections: 0, obstacles: 0 };
+        let lop = 0; // Lack of Progress count for the current run
         let segmentCount = 0;
         let runLogs = [];
         let teams = [];
@@ -636,6 +656,22 @@
             calculateScore();
         }
 
+        function updateLop(change) {
+            if (lop + change >= 0) {
+                lop += change;
+                document.getElementById('lop').innerText = lop;
+                calculateScore();
+            }
+        }
+
+        // Exit bonus per rule 5.6.5: max(0, 60 - 5 x total LoP),
+        // only awarded when the robot reaches the goal and stops 5s.
+        function computeExitBonus() {
+            const reachedGoal = document.getElementById('goalReachedCheck').checked;
+            if (!reachedGoal) return 0;
+            return Math.max(0, 60 - 5 * lop);
+        }
+
         function calculateScore() {
             let hazardPoints = (counts.gaps * 10) + (counts.intersections * 10) + (counts.obstacles * 20);
 
@@ -646,11 +682,13 @@
                 tilePoints += (tiles * multiplier);
             });
 
-            let redLinePoints = document.getElementById('redLineCheck').checked ? 25 : 0;
+            let exitBonus = computeExitBonus();
 
             document.getElementById('hazardTotal').innerText = hazardPoints;
             document.getElementById('tileTotal').innerText = tilePoints;
-            document.getElementById('totalScore').innerText = hazardPoints + tilePoints + redLinePoints;
+            document.getElementById('exitBonus').innerText = exitBonus;
+            document.getElementById('exitBonusTotal').innerText = exitBonus;
+            document.getElementById('totalScore').innerText = hazardPoints + tilePoints + exitBonus;
         }
 
         // ====================================================================
@@ -768,7 +806,8 @@
                 obstacles: row.Obstacles || 0,
                 hazards: row.Hazards || 0,
                 tiles: row.Tiles || row.TilePoints || 0,
-                redLine: row.RedLine || '',
+                lop: row.LoP != null ? row.LoP : (row.Lop || 0),
+                exitBonus: row.ExitBonus != null ? row.ExitBonus : 0,
                 total: row.Total || 0
             };
         }
@@ -794,8 +833,8 @@
             const round = document.getElementById('roundName').value || '';
             const hazards = parseInt(document.getElementById('hazardTotal').innerText) || 0;
             const tiles = parseInt(document.getElementById('tileTotal').innerText) || 0;
+            const exitBonus = computeExitBonus();
             const total = parseInt(document.getElementById('totalScore').innerText) || 0;
-            const redLine = document.getElementById('redLineCheck').checked ? 'Pass' : 'Fail';
 
             const now = new Date();
             const dateTimeStr = now.toLocaleDateString() + ' ' +
@@ -804,7 +843,7 @@
             const entry = {
                 dateTime: dateTimeStr, team, round,
                 gaps: counts.gaps, intersections: counts.intersections, obstacles: counts.obstacles,
-                hazards, tiles, redLine, total
+                hazards, tiles, lop, exitBonus, total
             };
 
             // Always save locally so nothing is ever lost.
@@ -829,7 +868,8 @@
             formData.append('Obstacles', counts.obstacles);
             formData.append('Hazards', hazards);
             formData.append('Tiles', tiles);
-            formData.append('RedLine', redLine);
+            formData.append('LoP', lop);
+            formData.append('ExitBonus', exitBonus);
             formData.append('Total', total);
 
             fetch(scriptURL, { method: 'POST', body: formData })
@@ -875,14 +915,15 @@
                 : runLogs.filter(l => l.team === filter);
 
             [...filtered].reverse().forEach(log => {
-                const rowColor = log.redLine === 'Pass' ? 'color: var(--success);' : 'color: var(--danger);';
+                const lopColor = (Number(log.lop) || 0) > 0 ? 'color: var(--danger);' : 'color: var(--text-muted);';
                 tbody.innerHTML += `<tr>
                     <td style="font-size: 12px; color: var(--text-muted);">${escapeHtml(log.dateTime) || '-'}</td>
                     <td style="font-weight:bold;">${escapeHtml(log.team)}</td>
                     <td>${escapeHtml(log.round) || '-'}</td>
                     <td>${log.hazards}</td>
                     <td>${log.tiles}</td>
-                    <td style="font-weight:bold; ${rowColor}">${escapeHtml(log.redLine)}</td>
+                    <td style="font-weight:bold; ${lopColor}">${Number(log.lop) || 0}</td>
+                    <td>${Number(log.exitBonus) || 0}</td>
                     <td style="font-weight:bold; color: var(--success); font-size: 16px;">${log.total}</td>
                 </tr>`;
             });
@@ -976,9 +1017,9 @@
             updateTimerDisplay();
         }
 
-        // Recalculate total when the red line box is toggled.
+        // Recalculate total when the goal-reached box is toggled.
         document.addEventListener('DOMContentLoaded', function () {
-            document.getElementById('redLineCheck').addEventListener('change', calculateScore);
+            document.getElementById('goalReachedCheck').addEventListener('change', calculateScore);
         });
     </script>
 

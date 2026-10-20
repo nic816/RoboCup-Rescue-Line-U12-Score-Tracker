@@ -13,24 +13,26 @@ A lightweight scoring dashboard for **RCAP Rescue Line Entry, U12** training run
 - **Live Scoring Dashboard** — 5-minute countdown timer.
 - **Hazard Counters** — Gaps (10 pts), Intersections (10 pts), Obstacles (20 pts).
 - **Checkpoint Segments** — Dynamic list with tile counts and attempt multipliers.
-- **U12 Mission Task** — Red line stop detection toggle (+25 pts).
+- **Exit Bonus** — Lack-of-Progress counter and a "reached goal" toggle, computing the official exit bonus automatically.
 - **Works Offline** — Runs entirely in the browser. Cloud saving to Google Sheets is optional.
 - **No Server Required** — Pure HTML/JS plus optional Google Apps Script.
 
 ---
 
-# 📋 Scoring Rules (RCAP Rescue Line Entry, U12)
+# 📋 Scoring Rules (RCAP Rescue Line Entry, U12 — v2026.0)
 
 | Element | Points |
 |---|---|
-| Gap navigated | +10 per gap |
+| Tile with one or more gaps navigated | +10 per tile |
 | Intersection navigated | +10 per intersection |
-| Obstacle avoided | +20 per obstacle |
+| Obstacle overcome | +20 per obstacle |
 | Checkpoint tile (1st attempt) | tiles × 5 |
 | Checkpoint tile (2nd attempt) | tiles × 3 |
 | Checkpoint tile (3rd attempt) | tiles × 2 |
-| Checkpoint tile (4th+ attempt) | tiles × 1 |
-| Red line detected successfully | +25 |
+| Checkpoint tile (beyond 3rd attempt) | tiles × 1 |
+| Exit bonus (robot reaches goal and stops 5s) | max(0, 60 − 5 × total LoP) |
+
+> **Exit Bonus (rule 5.6.5):** awarded only when the robot reaches the goal tile and stays stopped for 5+ seconds. Each Lack of Progress (LoP) reduces it by 5, and it never goes below 0. There is **no** separate "red line" bonus — the red tape simply marks the goal tile.
 
 ---
 
@@ -63,10 +65,10 @@ Open: https://sheets.new/
 
 Rename the first tab to **`Runs`** and add these headers in the **first row** (exactly):
 
-| Timestamp | Team | Round | Gaps | Intersections | Obstacles | Hazards | Tiles | RedLine | Total |
-|---|---|---|---|---|---|---|---|---|---|
+| Timestamp | Team | Round | Gaps | Intersections | Obstacles | Hazards | Tiles | LoP | ExitBonus | Total |
+|---|---|---|---|---|---|---|---|---|---|---|
 
-> **Why the extra columns?** Storing the hazard breakdown (gaps / intersections / obstacles) per run — not just the total — lets you spot exactly where a team is losing points, and makes it easy to build pivot tables or charts per team.
+> **Why the extra columns?** Storing the hazard breakdown (gaps / intersections / obstacles) and the Lack-of-Progress count per run — not just the total — lets you spot exactly where a team is losing points, and makes it easy to build pivot tables or charts per team.
 
 ### 3. Create the `Teams` tab
 
@@ -164,7 +166,8 @@ function doPost(e) {
     e.parameter.Obstacles || 0,
     e.parameter.Hazards || 0,
     e.parameter.Tiles || 0,
-    e.parameter.RedLine || '',
+    e.parameter.LoP || 0,
+    e.parameter.ExitBonus || 0,
     e.parameter.Total || 0
   ]);
 
@@ -216,7 +219,7 @@ const scriptURL = 'https://script.google.com/macros/s/XXXXXXXXXXXXXXXXXXXX/exec'
 3. Start the timer when a run begins.
 4. Record hazards (gaps, intersections, obstacles) as they occur.
 5. Add checkpoint segments and tile counts, and pick the attempt multiplier.
-6. Toggle the Red Line mission if completed successfully.
+6. Increment the **Lack of Progress** counter each time a LoP occurs, and toggle **"Reached goal & stopped 5s"** if the robot finishes — the exit bonus is computed automatically.
 7. **Save the run.** It's stored against the selected team.
 8. In **Team Progress**, filter by a team to see its runs, best score, average, and trend.
 
